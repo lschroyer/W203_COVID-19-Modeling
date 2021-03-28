@@ -1,0 +1,211 @@
+---
+title: 'Lab 2: Part 1'
+author: "Jun Qian, Lucas Schroyer, Ryan Mitchell, Oliver Chang"
+output: pdf_document
+---
+
+```{r load packages, echo=TRUE, warning=FALSE, message=FALSE}
+rm(list = ls())
+library(dplyr)
+library(ggplot2) 
+library(purrr)
+library(haven)
+library(tidyverse)
+# install.packages("DescTools")
+library(DescTools)
+library(magrittr)
+library(kableExtra)
+require(plotrix)
+# install.packages("magick")
+# install.packages("webshot")
+library("magick")
+library("webshot")
+webshot::install_phantomjs()
+
+#install.packages("openxlsx") 
+library(openxlsx)
+#nstall.packages("rapportools")
+library(rapportools)
+#install.packages("data.table")
+library(data.table)
+
+
+```
+
+```{r load data, echo=FALSE, warning=TRUE, message=FALSE}
+#Read in Census Data
+acs_with_overlays <- read_csv("data/ACSDP1Y2019.DP05_data_with_overlays_2021-03-18T145421.csv", 
+                              skip = 1, 
+                              col_names = TRUE)
+
+names(acs_with_overlays) <-  names(acs_with_overlays) %>% 
+    tolower() %>%
+    str_to_title() %>%
+    gsub(pattern = " ", replacement = ".") %>%
+    gsub(pattern = "!!", replacement = ".") %>%
+    gsub(pattern = "!", replacement = ".")  
+
+acs_with_overlays %>% head(3)
+
+```
+
+```{r}
+US_mobility_data <- read_csv("data/2020_US_Region_Mobility_Report.csv", 
+#                              skip = 1, 
+                              col_names = TRUE)
+
+names(US_mobility_data) <-  names(US_mobility_data) %>% 
+    tolower() %>%
+    str_to_title() %>%
+    gsub(pattern = " ", replacement = ".") #%>%
+    #gsub(pattern = "!!", replacement = ".") #%>%
+    #gsub(pattern = "!", replacement = ".")  
+
+US_mobility_data %>% glimpse
+
+```
+
+
+
+```{r}
+## Pull data from NYT COVID Database and plot summary
+NYT_Data <- fread("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
+summary(NYT_Data)
+
+## Convert date strings to dates. 
+NYT_Data[,date:=as.Date(date)]
+summary(NYT_Data)
+
+## Plot out some case data exploration
+#_See the R graph gallery for some beautiful things you can do with ggplot 
+#(https://www.r-graph-gallery.com/277-marginal-histogram-for-ggplot2.html))_
+
+state_i <- "New York"
+plot_data <- NYT_Data[state == state_i,]
+p <- ggplot(plot_data, aes(x=date, y=cases)) + 
+  geom_col()
+p
+
+
+```
+
+``` {r}
+## Calculate cases on a time interval
+start.date <- as.Date("2021-01-01")
+end.date <- as.Date("2021-02-28")
+state_i <- "New York"
+interval.cases <- NYT_Data[state == state_i & date == end.date, cases] - 
+  NYT_Data[state == state_i & date == start.date, cases]
+
+interval.cases <- NYT_Data %>%
+  arrange(state, 
+          date == start.date) %>%
+  group_by(state) %>%
+  mutate(cases_inc = cases - lag(cases),
+         deaths_inc = deaths - lag(deaths)) %>%
+  ungroup() %>% 
+  filter(cases_inc >= 0)
+
+interval.cases %>% glimpse()
+
+#plot_data <- NYT_Data[state == state_i,]
+p2 <- ggplot(interval.cases %>% filter(state == state_i),
+             aes(x=date, y=cases_inc)) + 
+ geom_col()
+p2
+
+```
+
+
+```{r}
+#join mobility data with covid database
+
+
+US_mobility_data$Sub_region_1 %>% unique()
+US_mobility_data %>% glimpse()
+interval.cases %>% glimpse
+
+US_mobility_data_agg <- US_mobility_data %>% 
+  dplyr::rename("state" = "Sub_region_1",
+         "date" = "Date") %>%
+  group_by(state, date) %>% 
+  summarize(Retail_and_recreation_percent_change_from_baseline = 
+              mean(Retail_and_recreation_percent_change_from_baseline, na.rm = T),
+            Grocery_and_pharmacy_percent_change_from_baseline = 
+              mean(Grocery_and_pharmacy_percent_change_from_baseline, na.rm = T),
+            Parks_percent_change_from_baseline = 
+              mean(Parks_percent_change_from_baseline, na.rm = T),
+            Transit_stations_percent_change_from_baseline = 
+              mean(Transit_stations_percent_change_from_baseline, na.rm = T), 
+            Workplaces_percent_change_from_baseline = 
+              mean(Workplaces_percent_change_from_baseline, na.rm = T),
+            Residential_percent_change_from_baseline = 
+              mean(Residential_percent_change_from_baseline, na.rm = T)) %>% 
+  ungroup()
+
+US_cases_and_mobility <- US_mobility_data_agg %>% 
+  left_join(interval.cases, by = c("state", "date"))
+
+#QC the join
+US_cases_and_mobility %>% dim()
+# 20592    13
+US_mobility_data_agg %>% dim()
+#20592      8
+interval.cases %>% dim()
+#21331     7
+
+US_cases_and_mobility %>% 
+  filter(is.na(cases_inc),
+         !is.na(state)) %>% 
+  select(state, cases_inc) %>% nrow()
+#1023
+
+US_cases_and_mobility %>% nrow()
+#20592
+
+#1023/20592*100
+#[1] 5.0% missing inc cases data
+
+
+US_cases_and_mobility2 <- US_cases_and_mobility %>% 
+  arrange(date) %>% 
+  group_by(state) %>% 
+  mutate(cases_inc_avg_2weekpost = (cases - dplyr::lag(cases, 14))/14,
+         #get the cum sum
+         Retail_and_recreation_percent_change_from_baseline_cum = cumsum(Retail_and_recreation_percent_change_from_baseline), 
+         Grocery_and_pharmacy_percent_change_from_baseline_cum = cumsum(Grocery_and_pharmacy_percent_change_from_baseline),
+         Parks_percent_change_from_baseline_cum = cumsum(Parks_percent_change_from_baseline),
+         Transit_stations_percent_change_from_baseline_cum = cumsum(Transit_stations_percent_change_from_baseline), 
+         Workplaces_percent_change_from_baseline_cum = cumsum(Workplaces_percent_change_from_baseline), 
+         Residential_percent_change_from_baseline_cum = cumsum(Residential_percent_change_from_baseline),
+         
+         #determine avg pre week change
+         Retail_and_recreation_percent_change_from_baseline_avg_1weekpre =
+          (Retail_and_recreation_percent_change_from_baseline_cum - lead(Retail_and_recreation_percent_change_from_baseline_cum, 7))/7,
+         Grocery_and_pharmacy_percent_change_from_baseline_avg_1weekpre = 
+          (Grocery_and_pharmacy_percent_change_from_baseline_cum - lead(Grocery_and_pharmacy_percent_change_from_baseline_cum, 7))/7,
+         Parks_percent_change_from_baseline_avg_1weekpre = Parks_percent_change_from_baseline,
+          (Parks_percent_change_from_baseline_cum - lead(Parks_percent_change_from_baseline_cum, 7))/7,
+         Transit_stations_percent_change_from_baseline_avg_1weekpre = Transit_stations_percent_change_from_baseline,
+          (Transit_stations_percent_change_from_baseline_cum - lead(Transit_stations_percent_change_from_baseline_cum, 7))/7,
+         Workplaces_percent_change_from_baseline_avg_1weekpre = Workplaces_percent_change_from_baseline,
+          (Workplaces_percent_change_from_baseline_cum - lead(Workplaces_percent_change_from_baseline_cum, 7))/7,
+         Residential_percent_change_from_baseline_avg_1weekpre = 
+          (Residential_percent_change_from_baseline_cum - lead(Residential_percent_change_from_baseline_cum, 7))/7) %>% 
+  ungroup()
+  
+
+# US_cases_and_mobility2 %>% 
+#   select(state, date, cases_inc_avg_2weekpost, cases, cases_inc, everything()) %>% 
+#   View
+
+#Run regression
+
+model_1 <- lm(cases_inc_avg_2weekpost ~ Retail_and_recreation_percent_change_from_baseline_avg_1weekpre, 
+               data = US_cases_and_mobility2 %>% 
+                filter(!is.na(cases_inc_avg_2weekpost)))
+
+model_1
+  
+
+```
