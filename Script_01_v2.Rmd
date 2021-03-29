@@ -29,6 +29,9 @@ library(rapportools)
 #install.packages("data.table")
 library(data.table)
 
+library(patchwork)
+library(sandwich)
+library(lmtest)
 
 ```
 
@@ -168,44 +171,133 @@ US_cases_and_mobility %>% nrow()
 
 
 US_cases_and_mobility2 <- US_cases_and_mobility %>% 
-  arrange(date) %>% 
+  arrange(state, date) %>% 
   group_by(state) %>% 
-  mutate(cases_inc_avg_2weekpost = (cases - dplyr::lag(cases, 14))/14,
+  mutate(cases_avg_daily_change_2weekpost = (lead(cases, 14) - cases)/14,
+         cases_pct_change_2weekpost = (lead(cases, 14) - cases)/(lead(cases, 14) + cases)/2 * 100,
          #get the cum sum
-         Retail_and_recreation_percent_change_from_baseline_cum = cumsum(Retail_and_recreation_percent_change_from_baseline), 
-         Grocery_and_pharmacy_percent_change_from_baseline_cum = cumsum(Grocery_and_pharmacy_percent_change_from_baseline),
-         Parks_percent_change_from_baseline_cum = cumsum(Parks_percent_change_from_baseline),
-         Transit_stations_percent_change_from_baseline_cum = cumsum(Transit_stations_percent_change_from_baseline), 
-         Workplaces_percent_change_from_baseline_cum = cumsum(Workplaces_percent_change_from_baseline), 
-         Residential_percent_change_from_baseline_cum = cumsum(Residential_percent_change_from_baseline),
+         Retail_and_recreation_percent_change_from_baseline_cum =
+           cumsum(Retail_and_recreation_percent_change_from_baseline), 
+         Grocery_and_pharmacy_percent_change_from_baseline_cum =
+           cumsum(Grocery_and_pharmacy_percent_change_from_baseline),
+         Parks_percent_change_from_baseline_cum = 
+           cumsum(Parks_percent_change_from_baseline),
+         Transit_stations_percent_change_from_baseline_cum = 
+           cumsum(Transit_stations_percent_change_from_baseline), 
+         Workplaces_percent_change_from_baseline_cum = 
+           cumsum(Workplaces_percent_change_from_baseline), 
+         Residential_percent_change_from_baseline_cum = 
+           cumsum(Residential_percent_change_from_baseline),
          
          #determine avg pre week change
          Retail_and_recreation_percent_change_from_baseline_avg_1weekpre =
-          (Retail_and_recreation_percent_change_from_baseline_cum - lead(Retail_and_recreation_percent_change_from_baseline_cum, 7))/7,
+          (Retail_and_recreation_percent_change_from_baseline_cum - lag(Retail_and_recreation_percent_change_from_baseline_cum, 7))/7,
          Grocery_and_pharmacy_percent_change_from_baseline_avg_1weekpre = 
-          (Grocery_and_pharmacy_percent_change_from_baseline_cum - lead(Grocery_and_pharmacy_percent_change_from_baseline_cum, 7))/7,
-         Parks_percent_change_from_baseline_avg_1weekpre = Parks_percent_change_from_baseline,
-          (Parks_percent_change_from_baseline_cum - lead(Parks_percent_change_from_baseline_cum, 7))/7,
-         Transit_stations_percent_change_from_baseline_avg_1weekpre = Transit_stations_percent_change_from_baseline,
-          (Transit_stations_percent_change_from_baseline_cum - lead(Transit_stations_percent_change_from_baseline_cum, 7))/7,
-         Workplaces_percent_change_from_baseline_avg_1weekpre = Workplaces_percent_change_from_baseline,
-          (Workplaces_percent_change_from_baseline_cum - lead(Workplaces_percent_change_from_baseline_cum, 7))/7,
+          (Grocery_and_pharmacy_percent_change_from_baseline_cum - lag(Grocery_and_pharmacy_percent_change_from_baseline_cum, 7))/7,
+         Parks_percent_change_from_baseline_avg_1weekpre =
+          (Parks_percent_change_from_baseline_cum - lag(Parks_percent_change_from_baseline_cum, 7))/7,
+         Transit_stations_percent_change_from_baseline_avg_1weekpre =
+          (Transit_stations_percent_change_from_baseline_cum - lag(Transit_stations_percent_change_from_baseline_cum, 7))/7,
+         Workplaces_percent_change_from_baseline_avg_1weekpre =
+          (Workplaces_percent_change_from_baseline_cum - lag(Workplaces_percent_change_from_baseline_cum, 7))/7,
          Residential_percent_change_from_baseline_avg_1weekpre = 
-          (Residential_percent_change_from_baseline_cum - lead(Residential_percent_change_from_baseline_cum, 7))/7) %>% 
-  ungroup()
+          (Residential_percent_change_from_baseline_cum - lag(Residential_percent_change_from_baseline_cum, 7))/7) %>%  
+  ungroup() 
+
+US_cases_and_mobility2 <- US_cases_and_mobility2 %>% 
+  mutate(AvgIndustry_percent_change_from_baseline_avg_1weekpre = 
+           rowMeans(US_cases_and_mobility2 %>%  
+                      select(
+                        Retail_and_recreation_percent_change_from_baseline_avg_1weekpre,
+                        Grocery_and_pharmacy_percent_change_from_baseline_avg_1weekpre,
+                        Parks_percent_change_from_baseline_avg_1weekpre,
+                        Transit_stations_percent_change_from_baseline_avg_1weekpre,
+                        Workplaces_percent_change_from_baseline_avg_1weekpre,
+                        Residential_percent_change_from_baseline_avg_1weekpre),
+             na.rm = T)
+  )
   
 
-# US_cases_and_mobility2 %>% 
-#   select(state, date, cases_inc_avg_2weekpost, cases, cases_inc, everything()) %>% 
-#   View
+# US_cases_and_mobility2 %>%
+#   select(state, date, cases_pct_change_2weekpost, cases, cases_inc, 
+#          sort(current_vars())
+#          ) %>%
+#   filter(!is.na(cases_pct_change_2weekpost)) %>% 
+#   View()
+```
 
+
+```{r}
+ggplot(data = US_cases_and_mobility2 %>% 
+                filter(!is.na(cases_pct_change_2weekpost))) +
+  stat_smooth(aes(x = date,
+                  y = cases_pct_change_2weekpost,
+                  colour="Cases (post two-week average)"), 
+       show_guide = TRUE,
+       method="loess", span=0.1, se=TRUE, alpha=0.3) +
+  theme_bw() + 
+  stat_smooth(aes(x = date, 
+                  y = AvgIndustry_percent_change_from_baseline_avg_1weekpre, 
+                  colour="Mobility (pre one-week average)"),
+              show_guide = TRUE,
+              method="loess", span=0.1, se=TRUE, alpha=0.3) + 
+  ylab('percent change (%)') + 
+  scale_colour_manual(name="Fit", 
+                      values=c("Cases (post two-week average)"="blue", 
+                               "Mobility (pre one-week average)"="black"))
+
+
+ggplot(data = US_cases_and_mobility2 %>% 
+                filter(!is.na(cases_avg_daily_change_2weekpost)),
+       aes(x = date,
+                 y = cases_avg_daily_change_2weekpost)) +
+  stat_smooth(method="loess", span=0.1, se=TRUE, alpha=0.3) +
+  theme_bw()
+
+ggplot(data = US_cases_and_mobility2 %>% 
+                filter(!is.na(cases_pct_change_2weekpost))) +
+  geom_point(aes(x = cases_pct_change_2weekpost,
+                 y = AvgIndustry_percent_change_from_baseline_avg_1weekpre)) +
+  geom_smooth(aes(x = cases_pct_change_2weekpost,
+                 y = AvgIndustry_percent_change_from_baseline_avg_1weekpre),
+            colour = 'red',
+            method = "lm", se = FALSE)
+
+ggplot(data = US_cases_and_mobility2 %>% 
+                filter(!is.na(cases_pct_change_2weekpost))) +
+  geom_histogram(aes(x = cases_pct_change_2weekpost))
+
+
+```
+
+
+
+```{r}
 #Run regression
-
-model_1 <- lm(cases_inc_avg_2weekpost ~ Retail_and_recreation_percent_change_from_baseline_avg_1weekpre, 
+model_1 <- lm(cases_pct_change_2weekpost ~
+                AvgIndustry_percent_change_from_baseline_avg_1weekpre, 
                data = US_cases_and_mobility2 %>% 
-                filter(!is.na(cases_inc_avg_2weekpost)))
+                filter(!is.na(cases_pct_change_2weekpost)))
 
-model_1
+cat("-------Coef-------\n")
+coefficients(model_1)
+
+cat("\n-------Model results-------\n")
+summary(model_1)
+cat("\n")
+
+# calculate the variance-covariance matrix between the betas
+cat("-------Var-Cov Matrix-------\n")
+varcov <- vcovHC(model_1, type = "HC3")
+varcov
+
+cat("\n-------Coef Test-------\n")
+coef_test_lm <- coeftest(model_1, varcov)
+coef_test_lm
+
   
 
 ```
+
+
+
