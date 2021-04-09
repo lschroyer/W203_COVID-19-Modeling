@@ -93,8 +93,8 @@ policy_df_0 <- list_all$State.Characteristics %>%
                      begin_stay_at_home = `stay_at_home/shelter_in_place`, 
                      end_stay_at_home = `end_stay_at_home/shelter_in_place`), 
             by = "state") %>% 
-  mutate(begin_stay_at_home = as.Date(begin_stay_at_home, origin = "1899-12-30"),
-         end_stay_at_home = as.Date(end_stay_at_home, origin = "1899-12-30")) %>%  
+  mutate(begin_stay_at_home = as.Date(as.numeric(begin_stay_at_home), origin = "1899-12-30"),
+         end_stay_at_home = as.Date(as.numeric(end_stay_at_home), origin = "1899-12-30")) %>% 
   mutate(stay_at_home_flag = ifelse(year(begin_stay_at_home) > 2000, 1, 0)) %>%   
   left_join(list_all$Business.Closures %>% 
               select(state, first_business_closures, first_business_reopening), 
