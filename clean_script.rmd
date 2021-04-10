@@ -9,6 +9,10 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Introduction here
+
+Introduction. Is the introduction clear? Is the research question specific and well defined? Does the introduction motivate a specific concept to be measured and explain how it will be operationalized. Does it do a good job of preparing the reader to understand the model specifications?
+
 ```{r load packages, echo=FALSE, warning=FALSE, message=FALSE}
 rm(list = ls())
 library(dplyr)
@@ -234,18 +238,18 @@ US_mobility_data2_highpopdens0 <- US_mobility_data2 %>%
 #   arrange(desc(county_pop_dens)) %>% 
 #   View()
 
-ggplot(US_mobility_data2_highpopdens0 %>% 
-         filter(Date == "2020-03-30"), 
-       aes(log10(county_pop_dens))) +
-  geom_histogram(bins = 100)
+#ggplot(US_mobility_data2_highpopdens0 %>% 
+#         filter(Date == "2020-03-30"), 
+#       aes(log10(county_pop_dens))) +
+#  geom_histogram(bins = 100)
 
 #User input
 pop_dens_filter <- 2000
 
-ggplot(US_mobility_data2_highpopdens0 %>% 
-         filter(Date == "2020-03-30", county_pop_dens < pop_dens_filter), 
-       aes((county_pop_dens))) +
-  geom_histogram(bins = 100)
+#ggplot(US_mobility_data2_highpopdens0 %>% 
+#         filter(Date == "2020-03-30", county_pop_dens < pop_dens_filter), 
+#       aes((county_pop_dens))) +
+#  geom_histogram(bins = 100)
 
 #Flag for areas greater than the pop_dens_filter people per sqmi cuttoff
 US_mobility_data2_highpopdens <- US_mobility_data2_highpopdens0 %>% 
@@ -370,53 +374,84 @@ stopifnot(US_cases_and_mobility %>% nrow()
 #[1] 5.1% missing inc cases data
 ```
 
+# The Initial Data Loading and Cleaning. 
+
+Did the team notice any anomalous values? Is there a sufficient justification for any data points that are removed? Did the report note any coding features that affect the meaning of variables (e.g. top-coding or bottom-coding)? Overall, does the report demonstrate a thorough understanding of the data? Does the report convey this understand to its reader – can the reader, through reading this report, come to the same understanding that the team has come to?
+
+
 ```{r data wrangling and final df, echo=FALSE, message=FALSE, warning=FALSE}
-#For each state, read in the first 90 days of transit change data, beginning at the date the state declared an emergency 
-first_90 <- US_cases_and_mobility %>% 
+#For each state, read in the first 365 days of transit change data, beginning at the date the state declared an emergency 
+first_365 <- US_cases_and_mobility %>% 
   left_join(policy_df_0, by = c("state")) %>%
   filter(as.Date(date) >= as.Date(state_of_emergency_declared) & 
-           as.Date(date) <= as.Date(state_of_emergency_declared) + 89)
+           as.Date(date) <= as.Date(state_of_emergency_declared) + 364)
   
-#Calculate the mean county-population-weigthed value of transit changes for each state in the first 90 days after emergency declaration
-mobility_chg <- aggregate(first_90$Transit_stations_percent_change_from_baseline_weighted, by=list(state=first_90$state), FUN=mean) %>%
-  dplyr::rename(mean_transit_change = x)
+#Assess whether to use mean or median change in transit
+h <- hist(first_365$Transit_stations_percent_change_from_baseline_weighted, 
+     main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
+                  First Year"),  
+     xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)', col='gray') 
 
-#Calculate the cumulative cases at 90 days post emergency declaration by state  
-cases_at_90 <- aggregate(first_90$cases, by=list(state=first_90$state), FUN=max) %>%
-  dplyr::rename(cum_cases_at_90d = x)
+#h$density = h$density = h$counts/sum(h$counts)
+#plot(h, freq = FALSE, col='gray', main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
+#                  First Year"), xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)')
+
+
+#Calculate the mean county-population-weigthed value of transit changes for each state in the first 365 days after emergency declaration
+mobility_chg <- aggregate(first_365$Transit_stations_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median) %>%
+  dplyr::rename(median_transit_change = x)
+
+#Calculate the cumulative cases at 365 days post emergency declaration by state  
+cases_at_365 <- aggregate(first_365$cases, by=list(state=first_365$state), FUN=max) %>%
+  dplyr::rename(cum_cases_at_365d = x)
 
 #Grab the % of population living in high density variable
-high_dens <- aggregate(first_90$high_popdens_pop_perc, by=list(state=first_90$state), FUN=mean) %>%
+high_dens <- aggregate(first_365$high_popdens_pop_perc, by=list(state=first_365$state), FUN=mean) %>%
   dplyr::rename(high_popdens_pop_perc = x)
 
 #Replace NaN with 0
 high_dens$high_popdens_pop_perc[is.nan(high_dens$high_popdens_pop_perc)]<-0
 
 
-final_df <- cases_at_90 %>%
+final_df <- cases_at_365 %>%
   left_join(policy_df_0, by = c("state")) %>%
   left_join(mobility_chg, by = c("state")) %>%
   left_join(high_dens, by = c("state")) %>%
-  mutate(cases_per_100k_at_90d = 100000*cum_cases_at_90d/population) %>%
+  mutate(cases_per_100k_at_365d = 100000*cum_cases_at_365d/population) %>%
   left_join(acs_with_overlays, by = c("state" = "Geographic.Area.Name"))
 ```
 
+Given that the distribution of relative transit change had a left skew, our team decided to use the median value for each state within the 365 day window as a better measure of central tenancy. 
+
+
 ```{r transit change vs cases per 100k, echo=FALSE, message=FALSE}
 ggplot(data = final_df) +
-  geom_point(aes(x = mean_transit_change,
-                 y = cases_per_100k_at_90d)) +
-  geom_smooth(aes(x = mean_transit_change,
-                 y = cases_per_100k_at_90d),
+  geom_point(aes(x = median_transit_change,
+                 y = cases_per_100k_at_365d)) +
+  geom_smooth(aes(x = median_transit_change,
+                 y = cases_per_100k_at_365d),
             colour = 'red',
             method = "lm", se = FALSE) + 
-  geom_smooth(aes(x = mean_transit_change,
-                  y = cases_per_100k_at_90d),
+  geom_smooth(aes(x = median_transit_change,
+                  y = cases_per_100k_at_365d),
             colour = 'blue',
-            method = "loess", se = TRUE) 
+            method = "loess", se = TRUE) + 
+  labs(title = 'State-Level One Year Median Transit Change vs. 
+       Cases Per 100K People at One Year After SOE', x='Median Daily Relative % Transit Change', y='Cases Per 100K People One Year After SOE') 
 ```
 
+# The Model Building Process. 
+
+Overall, is each step in the model building process supported by EDA? Is the outcome variable appropriate? Did the team clearly state why they chose these explanatory variables, does this explanation make sense in term of their research question? Did the team consider available variable transformations and select them with an eye towards model plausibility and interpretability? Are transformations used to expose linear relationships in scatterplots? Is there enough explanation in the text to understand the meaning of each visualization?
+
+
+# Base Model. 
+
+Does this model only include key explanatory variables? Do the variables make sense given the measurement goals? Did the team apply reasonable transformations to these variables, to capture the nature of the relationships? Does the team write about this model in prose in a way that is appropriate?
+
 ```{r model, echo=FALSE, message=FALSE}
-model_1 <- lm(cases_per_100k_at_90d ~ mean_transit_change + population_density, data = final_df)
+model_1 <- lm(cases_per_100k_at_365d ~ median_transit_change
+              , data = final_df)
 
 qplot(model_1$residuals,
                geom = "histogram", bins = 20) +
@@ -427,7 +462,11 @@ qplot(model_1$fitted, model_1$residuals,
             geom = "point") +
          geom_abline(intercept = 0,
                      slope = 0,
-                     colour = "red") +
+                     colour = "red") + 
+         geom_smooth(aes(x = model_1$fitted,
+                         y = model_1$residuals),
+            colour = 'blue',
+            method = "loess", se = TRUE) +
          labs(title = "Plot of residuals vs fitted values",
               x = "fitted value",
               y = "residual")
@@ -439,3 +478,218 @@ cat("\n-------Model results-------\n")
 summary(model_1)
 cat("\n")
 ```
+
+# Model 1 Discussion Here:
+
+# Second Model. 
+
+Does this model represent a balanced approach, including variables that advance modeling goals without causing major issues? Does the model succeed in reducing standard errors of the key variables compared to the base model? Does it capture major non-linearities in the joint distribution of the variables? Does the team write about this model in prose in a way that is appropriate?
+
+# EDA for Model 2:
+
+One of the contributing factors to the spread of COVID-19 is asymptomatic spread. Younger people have been shown to have milder symptoms and therefore it stands to reason that they may be less likely to get tested, and ultimately end up spreading the disease at a greater rate than older age groups. To make matters worse, younger people tend to interact with more people (source?) as a result of being in school (switching between classrooms, touching desks and other surfaces where other students have been, congregating in large cafeterias, etc.), which increases the probability of viral transmission. Hence, for our second model, we were interested in testing our general hypothesis that age demographics may play a role in the spread of COVID-19. We began by doing some basic exploratory data analysis (EDA) with respect to age distributions and cumulative COVID-19 case counts per 100K, which is our target variable for Lab 2.
+
+```{r age EDA < 24, echo=FALSE, message=FALSE}
+census_df<-final_df[c('cases_per_100k_at_365d', 'Percent.Sex.And.Age.Total.Population.Under.5.Years', 'Percent.Sex.And.Age.Total.Population.5.To.9.Years', 'Percent.Sex.And.Age.Total.Population.10.To.14.Years', 'Percent.Sex.And.Age.Total.Population.15.To.19.Years','Percent.Sex.And.Age.Total.Population.20.To.24.Years')]
+
+names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  gsub(pattern = ".To.", replacement = "- \n") %>%  gsub(pattern = ".Years", replacement = " Yrs") %>%  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
+
+panel.cor<-function(x,y)
+  {
+    usr<-par("usr"); on.exit(par(usr))
+    par(usr=c(0,1,0,1))
+    r=round(cor(x,y),digits=2)
+    text(0.5,0.5,r)
+  }
+
+pairs(census_df,lower.panel = panel.cor,upper.panel = panel.smooth)
+```
+
+
+```{r age EDA 25-59, echo=FALSE, message=FALSE}
+census_df<-final_df[c('cases_per_100k_at_365d', 'Percent.Sex.And.Age.Total.Population.25.To.34.Years','Percent.Sex.And.Age.Total.Population.35.To.44.Years','Percent.Sex.And.Age.Total.Population.45.To.54.Years', 'Percent.Sex.And.Age.Total.Population.55.To.59.Years')]
+
+names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  gsub(pattern = ".To.", replacement = "- \n") %>%  gsub(pattern = ".Years", replacement = " Yrs") %>%  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
+
+panel.cor<-function(x,y)
+  {
+    usr<-par("usr"); on.exit(par(usr))
+    par(usr=c(0,1,0,1))
+    r=round(cor(x,y),digits=2)
+    text(0.5,0.5,r)
+  }
+
+pairs(census_df,lower.panel = panel.cor,upper.panel = panel.smooth)
+```
+
+```{r age EDA 60+, echo=FALSE, message=FALSE}
+census_df<-final_df[c('cases_per_100k_at_365d','Percent.Sex.And.Age.Total.Population.60.To.64.Years','Percent.Sex.And.Age.Total.Population.65.To.74.Years', 'Percent.Sex.And.Age.Total.Population.75.To.84.Years', 'Percent.Sex.And.Age.Total.Population.85.Years.And.Over')]
+
+names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  gsub(pattern = ".To.", replacement = "- \n") %>%  gsub(pattern = ".Years", replacement = " Yrs") %>%  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
+
+panel.cor<-function(x,y)
+  {
+    usr<-par("usr"); on.exit(par(usr))
+    par(usr=c(0,1,0,1))
+    r=round(cor(x,y),digits=2)
+    text(0.5,0.5,r)
+  }
+
+pairs(census_df,lower.panel = panel.cor,upper.panel = panel.smooth)
+```
+
+
+```{r age demo F-tests for feature creation, echo=FALSE, message=FALSE}
+
+#Build nested models for categorical age demographic data where visual inspection suggested interesting relationships with target
+intercept_model = lm(cases_per_100k_at_365d ~ 1, data = final_df)
+
+model_a = lm(cases_per_100k_at_365d ~ Percent.Sex.And.Age.Total.Population.Under.5.Years, data = final_df)
+
+model_b = lm(cases_per_100k_at_365d ~ Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years, data = final_df)
+
+model_c = lm(cases_per_100k_at_365d ~ Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years, data = final_df)
+
+model_d = lm(cases_per_100k_at_365d ~ Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years, data = final_df)
+
+model_e = lm(cases_per_100k_at_365d ~ Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years, data = final_df)
+
+#Significant
+anova(model_a, intercept_model, test = "F")
+
+#Insignificant 
+anova(model_b, model_a, test = "F")
+
+#Significant F-test
+anova(model_c, model_a, test = "F")
+
+#Insignificant relative to model_c
+anova(model_d, model_c, test = "F")
+anova(model_e, model_d, test = "F")
+anova(model_e, model_c, test = "F")
+```
+
+When performing EDA on the categorical age group distributions and their relationship to our target variable, we noticed a strong positive correlation to the target among age groups 0-24. Ages groups in the 24+ range did not appear to follow a consistent pattern with respect to correlation with our target variable and were therefore not a key focus area for our analysis.
+
+Next, we performed a series of F-tests on a nested set of linear regression models with parameter estimates for this set of age groups (Under 5, 5-9, 10-14, 15-19, and 20-24). Our motivation here was to understand whether the regression residuals were measurably different from one another between the different (nested) model specifications. For context, the null hypothesis for an F-test is that fitting additional coefficients for a longer model does not measurably reduce the residuals relative to a nested model with fewer parameters. 
+
+Our first F-test compared a simple intercept-only estimator model with a model that had a parameter estimate for the percentage of the population under 5 years old. With a p-value of 0.0002, we reject the null hypothesis and use this model (model_a) as the baseline model for subsequent comparisons with additional parameter estimates for different age categories. 
+
+We failed to reject the null hypothesis when adding an estimator for ages 5-9 (model_b), and succeeded in rejecting the null hypothesis when adding an estimator for ages 10-14 (model_c), with a p-value of 0.0001. Adding additional estimators for 15-19 and 20-24 failed to reject the null hypothesis that these models (model_d and model_e) were measurably better at reducing residuals than model_c. These results suggested creating features for ages 0-9 and 10-24 and adding them to our base model_1.
+
+```{r df update 1, echo=FALSE, message=FALSE} 
+final_df <- final_df %>% mutate(pop_pct_age_0_9 = Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years,
+                    pop_pct_age_10_24 = Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years)
+
+cor(final_df$pop_pct_age_0_9, final_df$pop_pct_age_10_24)
+
+final_df <- final_df %>% mutate(pop_pct_age_0_24 = Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years)
+```
+
+However, after measuring a 0.77 correlation between these two features - and with the benefit of increased model parsimony - we decided to group them together to prevent the standard errors for their respective coefficients from increasing substantially. Let's take a look and assess whether this new variable visually satisfies the conditional linearity expectation with respect to our target.
+
+```{r incremental variables 1, echo=FALSE, message=FALSE}
+ggplot(data = final_df) +
+  geom_point(aes(x = pop_pct_age_0_24,
+                 y = cases_per_100k_at_365d)) +
+  geom_smooth(aes(x = pop_pct_age_0_24,
+                 y = cases_per_100k_at_365d),
+            colour = 'red',
+            method = "lm", se = FALSE) + 
+  geom_smooth(aes(x = pop_pct_age_0_24,
+                  y = cases_per_100k_at_365d),
+            colour = 'blue',
+            method = "loess", se = TRUE) + 
+  labs(title = 'Percentage of State Population < 24 Years Old vs. 
+       Cases Per 100K People at One Year After SOE', x='Percentage of State Population < 24 Years Old', y='Cases Per 100K People One Year After SOE') 
+```
+
+The conditional linear expectation between our population percentage aged 0-24 and our target appears to be met. In addition to evaluating the linear relationships between the demographic age variables and our targets (and with each-other), we also evaluated the log, square root, and square transformations to the age distribution data but did not find them to aid in reducing the frequency or magnitude of outlier data points. 
+
+
+Next, we wanted to introduce a control variable for population density...
+
+```{r anova}
+#---Commented out because I collapsed 0-9 and 10-24 into 0-24
+#final_df <- final_df %>% mutate(pop_pct_age_0_9 = Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years,
+#                    pop_pct_age_10_24 = Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + #Percent.Sex.And.Age.Total.Population.20.To.24.Years)
+
+#model_2a <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_9, data = final_df)
+#model_2b <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_9 + pop_pct_age_10_24, data = final_df)
+#anova(model_2a, model_1, test = "F")
+#anova(model_2a, model_2b, test = "F")
+
+model_2a <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24, data = final_df)
+
+# Significant
+anova(model_2a, model_1, test = "F")
+
+
+model_2b <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density, data = final_df)
+
+cat("\n-------Model results-------\n")
+summary(model_2b)
+cat("\n")
+
+# Significant
+anova(model_2b, model_2a, test = "F")
+
+
+# Visually Evaluate Model 2b
+qplot(model_2b$residuals,
+               geom = "histogram", bins = 20) +
+         labs(title = "Histogram of residuals",
+              x = "residual")
+
+qplot(model_2b$fitted, model_2b$residuals,
+            geom = "point") +
+         geom_abline(intercept = 0,
+                     slope = 0,
+                     colour = "red") + 
+         geom_smooth(aes(x = model_2b$fitted,
+                         y = model_2b$residuals),
+            colour = 'blue',
+            method = "loess", se = TRUE) +
+         labs(title = "Plot of residuals vs fitted values",
+              x = "fitted value",
+              y = "residual")
+
+```
+
+# Third Model. 
+
+Does this model represent a maximalist approach, erring on the side of including most variables? Is it still a reasonable model? Are there any variables that are outcomes, and should therefore still be excluded? Is there too much colinearity, to the point that the key causal effects cannot be measured? Does this team write about this model in prose in a way that is appropriate?
+
+
+# A Regression Table. 
+
+Are the model specifications properly chosen to outline the boundary of reasonable choices? Is it easy to find key coefficients in the regression table? Does the text include a discussion of practical significance for key effects?
+
+# Plots, Figures, and Tables 
+
+Do the plots, figures and tables that the team has chosen to include successfully move forward the argument that they are making? Has the team chosen the most effective method (a table or a chart) to display their evidence? Is that table or chart the most communicative it could be? Is every plot, figure, and table that is included in the report referenced in the narrative argument?
+
+# Assessment of the CLM. 
+
+Has the team presented a sober assessment of the CLM assumptions that might be problematic for their model? Have they presented their analysis about the consequences of these problems (including random sampling) for the models they estimate? Did they use visual tools or statistical tests, as appropriate? Did they respond appropriately to any violations?
+
+# An Omitted Variables Discussion. 
+
+Did the report miss any important sources of omitted variable bias? Are the estimated directions of bias correct? Was their explanation clear? Is the discussion connected to whether the key effects are real or whether they may be solely an artifact of omitted variable bias?
+
+# Conclusion. 
+
+Does the conclusion address the research question? Does it raise interesting points beyond numerical estimates? Does it place relevant context around the results?
+
+Are there any other errors, faulty logic, unclear or unpersuasive writing, or other elements that leave you less convinced by the conclusions?
+
+# General Notes:
+
+"In principle the SE reflects the degree of uncertainty or the lack of information for getting a 'good' ( that is reliable) estimate of a parameter. Therefore if you keep everything else the same ( eg the same variation in the response, the same number of observations) but you increase the number of separate parameters to be estimated there will be less information per parameter to get the estimate, and hence larger standard error. Precisely what happens will depend on the the degree of variation in the additional X variable that is included and how colinear it is with already included variables."
+
+Known IID violations:
+Geo-spatial dependence (states near each other are not independent...physical proximity)
+Policy coordination dependence (states near each-other have coordinated policies (like NY/NJ quarantine policies, etc))
+
+Other limitations: 
+Mobility data is based on Google-Maps cell phone users. Not everyone has access to a smart phone or uses Google Maps and allows their location to be traced, so this data may not be representative of the population. Additionally, we do not have absolute numbers, only relative change data. 
