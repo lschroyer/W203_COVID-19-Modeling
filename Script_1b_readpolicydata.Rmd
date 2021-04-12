@@ -57,7 +57,7 @@ names(list_all) <- tab_names %>%
     str_to_title() %>%
     gsub(pattern = " ", replacement = ".") 
 
-#Rename colums in the DF
+#Rename columns in the DF
 for (df in 1:length(list_all)){
   name_qc <- names(list_all)[df] 
   #print(name_qc)
@@ -91,10 +91,20 @@ policy_df_0 <- list_all$State.Characteristics %>%
   left_join(list_all$Stay.At.Home %>% 
               select(state,
                      begin_stay_at_home = `stay_at_home/shelter_in_place`, 
+                     begin_stay_at_home2 = `stay-at-home_order_issued_but_did_not_specifically_restrict_movement_of_the_general_public`,
                      end_stay_at_home = `end_stay_at_home/shelter_in_place`), 
             by = "state") %>% 
-  mutate(begin_stay_at_home = as.Date(as.numeric(begin_stay_at_home), origin = "1899-12-30"),
+  mutate(begin_stay_at_home = as.numeric(begin_stay_at_home),
+         begin_stay_at_home2 = as.numeric(begin_stay_at_home2)) %>% 
+  mutate(begin_stay_at_home = case_when(
+         begin_stay_at_home == 0 & begin_stay_at_home2 == 0 ~ 0,
+         begin_stay_at_home == 0  ~ begin_stay_at_home2,
+         begin_stay_at_home2 == 0  ~ begin_stay_at_home,
+         TRUE ~ ifelse(begin_stay_at_home < begin_stay_at_home2, begin_stay_at_home, begin_stay_at_home2)
+         ),
+         begin_stay_at_home = as.Date(as.numeric(begin_stay_at_home), origin = "1899-12-30"),
          end_stay_at_home = as.Date(as.numeric(end_stay_at_home), origin = "1899-12-30")) %>% 
+  select(-begin_stay_at_home2) %>% 
   mutate(stay_at_home_flag = ifelse(year(begin_stay_at_home) > 2000, 1, 0)) %>%   
   left_join(list_all$Business.Closures %>% 
               select(state, first_business_closures, first_business_reopening), 
@@ -133,7 +143,8 @@ policy_df_0 <- list_all$State.Characteristics %>%
   
 policy_df_0 %>% glimpse()
 
-saveRDS(policy_df_0, file = "pwd/AggregatedPolicyData.rds")
+policy_df_0 %>% View()
+# saveRDS(policy_df_0, file = "pwd/AggregatedPolicyData.rds")
 
 #list_all$Unemployment.Benefits %>% names()
 # list_all$State.Of.Emergency %>% head()
