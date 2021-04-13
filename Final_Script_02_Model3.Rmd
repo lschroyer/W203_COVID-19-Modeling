@@ -1,0 +1,143 @@
+---
+title: "Model 3 clean_script"
+author: "Jun Qian, Lucas Schroyer, Ryan Mitchell, Oliver Chang"
+date: "4/8/2021"
+output: pdf_document
+  #html_document: default
+  #pdf_document: default
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r load packages, echo=FALSE, warning=FALSE, message=FALSE}
+rm(list = ls())
+library(dplyr)
+library(ggplot2) 
+library(purrr)
+library(haven)
+library(tidyverse)
+# install.packages("DescTools")
+library(DescTools)
+library(magrittr)
+library(kableExtra)
+require(plotrix)
+# install.packages("magick")
+# install.packages("webshot")
+library("magick")
+library("webshot")
+webshot::install_phantomjs()
+
+#install.packages("openxlsx") 
+library(openxlsx)
+#install.packages("readxl")
+library(readxl)
+#nstall.packages("rapportools")
+library(rapportools)
+#install.packages("data.table")
+library(data.table)
+
+library(patchwork)
+library(sandwich)
+library(lmtest)
+
+#install.packages("corrplot")
+#install.packages("psych")
+library(corrplot)
+library(psych)
+library(stargazer)
+```
+
+
+```{r read in model 2 outputs}
+load("pwd/model_2_workspace.RData")
+```
+
+
+# Third Model
+
+$$ 
+\text{ Model  3  }:\   
+\begin{equation}
+  \text{cases_per_100k_at_365d}=\beta_0 + \beta_1 \text{median_transit_change} + \beta_2 \text{pop_pct_age_0_24} + \beta_3 \text{population_density} + \beta_4    \text{mask_mandate_days} + \beta_5    \text{unemployment_benefits_days}+\beta_6    \text{increased_weekly_unemployment_insurance_amt_thru_jul3}+ \beta_7    \text{business_close_open_days}+ \beta_8    \text{travel_quarantine_mandate_days}+ \beta_9    \text{stay_at_home_days} \epsilon
+\end{equation}
+$$
+
+```{r model 3}
+model_3_final <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + mask_mandate_days + unemployment_benefits_days + increased_weekly_unemployment_insurance_amt_thru_jul31 + business_closed_days_round1 + travel_quarantine_mandate_days + stay_at_home_days, data = final_df)
+
+summary(model_3_final)
+
+# NOT Significant
+anova(model_3_final, model_2_final, test = "F")
+
+
+# Visually Evaluate Model 2b
+qplot(model_3_final$residuals,
+               geom = "histogram", bins = 20) +
+         labs(title = "Histogram of residuals",
+              x = "residual")
+
+qplot(model_3_final$fitted, model_3_final$residuals,
+            geom = "point") +
+         geom_abline(intercept = 0,
+                     slope = 0,
+                     colour = "red") + 
+         geom_smooth(aes(x = model_3_final$fitted,
+                         y = model_3_final$residuals),
+            colour = 'blue',
+            method = "loess", se = TRUE) +
+         labs(title = "Plot of residuals vs fitted values",
+              x = "fitted value",
+              y = "residual")
+
+```
+
+
+# Regression Table
+
+```{r regression table}
+robust_se_1 <- coeftest(model_1_final, vcovHC(model_1_final, type = 'HC3'))[ , "Std. Error"]
+robust_se_2 <- coeftest(model_2_final, vcovHC(model_2_final, type = 'HC3'))[ , "Std. Error"]
+robust_se_3 <- coeftest(model_3_final, vcovHC(model_3_final, type = 'HC3'))[ , "Std. Error"]
+
+# Print results
+stargazer(model_1_final, model_2_final, model_3_final, type = "text",
+          se = list(robust_se_1, robust_se_2, robust_se_3),
+          title = "Table 1: OLS models for COVID-19 Spread",
+          column.sep.width = "3pt")
+
+```
+
+
+# Plots, Figures, and Tables 
+
+Do the plots, figures and tables that the team has chosen to include successfully move forward the argument that they are making? Has the team chosen the most effective method (a table or a chart) to display their evidence? Is that table or chart the most communicative it could be? Is every plot, figure, and table that is included in the report referenced in the narrative argument?
+
+# Assessment of the CLM. 
+
+Has the team presented a sober assessment of the CLM assumptions that might be problematic for their model? Have they presented their analysis about the consequences of these problems (including random sampling) for the models they estimate? Did they use visual tools or statistical tests, as appropriate? Did they respond appropriately to any violations?
+
+# An Omitted Variables Discussion. 
+
+Did the report miss any important sources of omitted variable bias? Are the estimated directions of bias correct? Was their explanation clear? Is the discussion connected to whether the key effects are real or whether they may be solely an artifact of omitted variable bias?
+
+# Conclusion. 
+
+Does the conclusion address the research question? Does it raise interesting points beyond numerical estimates? Does it place relevant context around the results?
+
+Are there any other errors, faulty logic, unclear or unpersuasive writing, or other elements that leave you less convinced by the conclusions?
+
+# General Notes:
+
+"In principle the SE reflects the degree of uncertainty or the lack of information for getting a 'good' ( that is reliable) estimate of a parameter. Therefore if you keep everything else the same ( eg the same variation in the response, the same number of observations) but you increase the number of separate parameters to be estimated there will be less information per parameter to get the estimate, and hence larger standard error. Precisely what happens will depend on the the degree of variation in the additional X variable that is included and how colinear it is with already included variables."
+
+Known IID violations:
+Geo-spatial dependence (states near each other are not independent...physical proximity)
+Policy coordination dependence (states near each-other have coordinated policies (like NY/NJ quarantine policies, etc))
+
+Other limitations: 
+Mobility data is based on Google-Maps cell phone users. Not everyone has access to a smart phone or uses Google Maps and allows their location to be traced, so this data may not be representative of the population. Additionally, we do not have absolute numbers, only relative change data. 
