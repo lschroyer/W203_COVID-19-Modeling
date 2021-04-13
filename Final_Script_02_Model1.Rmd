@@ -604,7 +604,7 @@ ggplot(data = final_df) +
             colour = 'blue',
             method = 'loess', se = TRUE) +
   labs(title = 'Median Transit Mobility Change vs.\nCases Per 100K People For One Year After SOE',
-       x='State-Level Median Daily Relative %\Transit Mobility Change',
+       x='State-Level Median Daily Relative %\nTransit Mobility Change',
        y='Cases Per 100K People\nOne Year After SOE') +
   theme(axis.text=element_text(size=8),
         axis.title=element_text(size=8),

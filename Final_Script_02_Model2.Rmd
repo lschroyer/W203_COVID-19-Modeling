@@ -2,9 +2,9 @@
 title: "Model 2 clean_script"
 author: "Jun Qian, Lucas Schroyer, Ryan Mitchell, Oliver Chang"
 date: "4/8/2021"
-output: pdf_document
-  #html_document: default
-  #pdf_document: default
+output: 
+  html_document: default
+  pdf_document: default
 
 ---
 
