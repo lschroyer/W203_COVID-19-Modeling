@@ -44,6 +44,10 @@ library(patchwork)
 library(sandwich)
 library(lmtest)
 
+#install.packages("corrplot")
+#install.packages("psych")
+library(corrplot)
+library(psych)
 ```
 
 ```{r read in policy data script, echo=FALSE, message=FALSE, warning=FALSE}
@@ -386,20 +390,42 @@ first_365 <- US_cases_and_mobility %>%
   filter(as.Date(date) >= as.Date(state_of_emergency_declared) & 
            as.Date(date) <= as.Date(state_of_emergency_declared) + 364)
   
-#Assess whether to use mean or median change in transit
-h <- hist(first_365$Transit_stations_percent_change_from_baseline_weighted, 
-     main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
-                  First Year"),  
-     xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)', col='gray') 
 
-#h$density = h$density = h$counts/sum(h$counts)
-#plot(h, freq = FALSE, col='gray', main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
-#                  First Year"), xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)')
+#Calculate the median county-population-weigthed value of transit changes for each state in the first 365 days after emergency declaration
+transit_chg <- aggregate(first_365$Transit_stations_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median)  %>%
+  dplyr::rename(transit = x)
 
+retail_chg <- aggregate(first_365$Retail_and_recreation_percent_change_from_baseline_weighted,by=list(state=first_365$state), FUN=median) %>%
+  dplyr::rename(retail = x)
 
-#Calculate the mean county-population-weigthed value of transit changes for each state in the first 365 days after emergency declaration
+residential_chg <- aggregate(first_365$Residential_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median) %>%
+  dplyr::rename(residential = x)
+
+grocery_chg <- aggregate(first_365$Grocery_and_pharmacy_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median) %>%
+  dplyr::rename(grocery = x)
+
+parks_chg <- aggregate(first_365$Parks_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median)  %>%
+  dplyr::rename(parks = x)
+
+workplace_chg <- aggregate(first_365$Workplaces_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median)  %>%
+  dplyr::rename(workplace = x)
+
+z <- data.frame(transit_chg$transit, retail_chg$retail, grocery_chg$grocery, parks_chg$parks, workplace_chg$workplace, residential_chg$residential) %>%
+  dplyr::rename(Transit = transit_chg.transit, Retail = retail_chg.retail, Grocery = grocery_chg.grocery,
+                Parks = parks_chg.parks, Workplace = workplace_chg.workplace, Residential = residential_chg.residential)
+
+#Visualize the correlation between mobility changes
+M <- cor(z)
+mat1 <- data.matrix(M)
+print(M)
+corrplot(mat1, method = "color", tl.col = 'black', is.corr=FALSE, title = 'Correlation Matrix: Median Mobility Changes by Category')
+
+#Very high correlations between the mobility changes, except for Parks. We will first explore whether parks mobility change demonstrates a clear relationship with COVID cases, and then explore whether transit mobility shows a linear relationship with cases.
+
+#Calculate the median county-population-weighted value of transit changes for each state in the first 365 days after emergency declaration
 mobility_chg <- aggregate(first_365$Transit_stations_percent_change_from_baseline_weighted, by=list(state=first_365$state), FUN=median) %>%
   dplyr::rename(median_transit_change = x)
+
 
 #Calculate the cumulative cases at 365 days post emergency declaration by state  
 cases_at_365 <- aggregate(first_365$cases, by=list(state=first_365$state), FUN=max) %>%
@@ -412,19 +438,33 @@ high_dens <- aggregate(first_365$high_popdens_pop_perc, by=list(state=first_365$
 #Replace NaN with 0
 high_dens$high_popdens_pop_perc[is.nan(high_dens$high_popdens_pop_perc)]<-0
 
-
+#Create our final dataframe!
 final_df <- cases_at_365 %>%
   left_join(policy_df_0, by = c("state")) %>%
+  left_join(parks_chg, by = c("state")) %>%
   left_join(mobility_chg, by = c("state")) %>%
   left_join(high_dens, by = c("state")) %>%
   mutate(cases_per_100k_at_365d = 100000*cum_cases_at_365d/population) %>%
   left_join(acs_with_overlays, by = c("state" = "Geographic.Area.Name"))
-```
-
-Given that the distribution of relative transit change had a left skew, our team decided to use the median value for each state within the 365 day window as a better measure of central tenancy. 
 
 
-```{r transit change vs cases per 100k, echo=FALSE, message=FALSE}
+#Relationship between median parks mobility change and cumulative case count per 100k at 365 days post statement of emergency
+ggplot(data = final_df) +
+  geom_point(aes(x = parks,
+                 y = cases_per_100k_at_365d)) +
+  geom_smooth(aes(x = parks,
+                 y = cases_per_100k_at_365d),
+            colour = 'red',
+            method = "lm", se = FALSE) + 
+  geom_smooth(aes(x = parks,
+                  y = cases_per_100k_at_365d),
+            colour = 'blue',
+            method = "loess", se = TRUE) + 
+  labs(title = 'State-Level One Year Median Parks Mobility Change vs. 
+       Cases Per 100K People at One Year After SOE', x='Median Daily Relative % Parks Mobility Change', y='Cases Per 100K People One Year After SOE') 
+
+
+#Relationship between median transit change and cumulative case count per 100k at 365 days post statement of emergency
 ggplot(data = final_df) +
   geom_point(aes(x = median_transit_change,
                  y = cases_per_100k_at_365d)) +
@@ -436,9 +476,39 @@ ggplot(data = final_df) +
                   y = cases_per_100k_at_365d),
             colour = 'blue',
             method = "loess", se = TRUE) + 
-  labs(title = 'State-Level One Year Median Transit Change vs. 
-       Cases Per 100K People at One Year After SOE', x='Median Daily Relative % Transit Change', y='Cases Per 100K People One Year After SOE') 
+  labs(title = 'State-Level One Year Median Transit Mobility Change vs. 
+       Cases Per 100K People at One Year After SOE', x='Median Daily Relative % Transit Mobility Change', y='Cases Per 100K People One Year After SOE') 
+
+#Assess whether to use mean or median change in transit: We chose median because there is some skew in the data
+h <- hist(first_365$Transit_stations_percent_change_from_baseline_weighted, 
+     main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
+                  First Year"),  
+     xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)', col='gray') 
+
+#h$density = h$density = h$counts/sum(h$counts)
+#plot(h, freq = FALSE, col='gray', main = paste("Histogram of Relative Daily Changes in Transit Mobility for US States:
+#                  First Year"), xlab='Relative % Change From Baseline Mobility', ylab='Frequency (Days)')
+
+
+#Simple regression model on the relationship between change in parks mobility and COVID cases per 100K people. 
+model_p <- lm(cases_per_100k_at_365d ~ parks, data = final_df)
+
+#Pull out the p-values for the simple regression coefficients
+summary(model_p)$coefficients[,4]
 ```
+
+After inspection of the correlation matrix between the different measures of mobility changes, we chose to use the state-level median change in transit mobility in the 365 days after each state declared an emergency as our main variable of interest for model 1. Our motivation for choosing transit over the other mobility features was as follows:
+
+1) Transit is most closely aligned with our understanding of how viruses spread, particularly from one locality or population center to another. 
+
+2) The mobility changes in Transit, Retail, Grocery, and Workplace are highly positively correlated with each other (>0.8 in each pair), and highly negatively correlated with Residential mobility changes (absolute value of >0.7 or above). Highly correlated features should be avoided in descriptive and explanatory linear regression modeling as they tend to increase the standard error estimates on the model parameter estimates for the correlated features. 
+
+The only mobility metric that was not strongly correlated with the others was Parks. Since the median change in Park mobility was not strongly correlated with any other mobility changes, we examined its relationship with our target variable but did not observe a positive or negative linear relationship. A t-Test on our calculated simple regression coefficient failed to reject the null hypothesis that there was no evidence that the coefficient for change in median Parks mobility was measurably different than zero. 
+
+3) We did not want to take an aggregation of the set of highly correlated features (Transit, Retail, Grocery, and Workplace) because the raw data provided are relative numbers and we do not have access to the underlying absolute mobility data, so we would be unable to derive a correct weighted average of these features.
+
+4) Given that the distribution of relative transit mobility change had a left skew, our team decided to use the median value for each state within the 365 day window as a better measure of central tenancy. 
+
 
 # The Model Building Process. 
 
@@ -476,6 +546,11 @@ coefficients(model_1)
 
 cat("\n-------Model results-------\n")
 summary(model_1)
+cat("\n")
+
+
+cat("\n-------Model results-------\n")
+summary(model_p)
 cat("\n")
 ```
 
@@ -655,6 +730,11 @@ qplot(model_2b$fitted, model_2b$residuals,
               y = "residual")
 
 ```
+```{r m2}
+cor(final_df$median_transit_change, final_df$pop_pct_age_0_24)
+cor(final_df$median_transit_change, final_df$population_density)
+```
+
 
 # Third Model. 
 
