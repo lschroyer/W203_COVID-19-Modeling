@@ -3,9 +3,16 @@ title: "Model 2 clean_script"
 author: "Jun Qian, Lucas Schroyer, Ryan Mitchell, Oliver Chang"
 date: "4/8/2021"
 output: 
-  html_document: default
-  pdf_document: default
-
+  pdf_document: 
+    fig_caption: yes
+    fig_crop: no
+    latex_engine: xelatex
+ # html_document: default
+header-includes:
+   - \usepackage{floatrow}
+   - \floatsetup[figure]{capposition=top}
+   - \usepackage{caption}
+   - \captionsetup[figure]{labelformat=empty}
 ---
 
 ```{r setup, include=FALSE}
@@ -62,7 +69,7 @@ As we thought about an approach to building our Model 2 specifications, the gene
 
 One of the contributing factors to the spread of COVID-19 is asymptomatic spread. Younger people have been shown to have milder symptoms and therefore it stands to reason that they may be less likely to get tested, and ultimately end up spreading the disease at a greater rate than older age groups. To make matters worse, younger people tend to interact with more people (source?) as a result of being in school (switching between classrooms, touching desks and other surfaces where other students have been, congregating in large cafeterias, etc.), which increases the probability of viral transmission. Hence, for our second model, we were interested in testing our general hypothesis that age demographics may play a role in the spread of COVID-19. We began by doing some basic exploratory data analysis (EDA) with respect to age distributions and cumulative COVID-19 case counts per 100K, which is our target variable for Lab 2.
 
-```{r age EDA < 24, echo=FALSE, message=FALSE}
+```{r age EDA less than 24, echo=FALSE, message=FALSE}
 census_df<-final_df[c('cases_per_100k_at_365d', 
                       'Percent.Sex.And.Age.Total.Population.Under.5.Years', 
                       'Percent.Sex.And.Age.Total.Population.5.To.9.Years', 
@@ -416,8 +423,20 @@ z <- data.frame(final_df$cases_per_100k_at_365d,
 #Visualize the correlation between state policies and cases
 M <- cor(z)
 mat1 <- data.matrix(M)
-print(M)
-corrplot(mat1, method = "color", tl.col = 'black', is.corr=FALSE, title = 'Correlation Matrix: State Policies vs. Cases', addCoefasPercent = TRUE,  addCoef.col = "white")
+# print(M)
+# cat("\nCorrelation Matrix: State Policies vs. Cases")
+```
+
+```{r fig.cap = "Correlation Matrix: State Policies vs. Cases", echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, out.width="90%"}
+corrplot(mat1, method = "color", 
+         tl.col = 'black', is.corr=FALSE, 
+         # title = 'Correlation Matrix: State Policies vs. Cases',
+         addCoefasPercent = TRUE,  addCoef.col = "white", 
+         tl.cex = 0.5, tl.srt = 30,
+         type = "lower", #order = "hclust",
+         cl.ratio = 0.6, 
+         cl.align = "c")
+cat(" \n \n")
 ```
 
 From the scatterplots, we see varying degrees of linearity between the policy features and our outcome of interest. We tested each of these features iteratively in the same manner as before, using significance from ANOVA F-tests as the benchmark to decide whether or not to include incremental policy features as part of our final Model 2. Ultimately, none of these policy variables (length of mask mandates, length and amount of increased government assistance via enhanced unemployment benefits, length business closures, length of stay at home mandates, and length of travel quarantine restrictions) returned a p-value that would allow us to reject the null hypothesis that the model residuals had not measurably improved.
@@ -433,14 +452,30 @@ We were surprised, however, that mask mandates
 
 # Jun's policy tests (all failed) for Model 2 here (to be reviewed...):
 
-```{r base model, echo=FALSE, message=FALSE, results=FALSE}
+```{r model 2 additional policy variables ANOVA F-Tests}
+#Testing mask mandate days: Failed F-Test
+model_2_final_incremental_test1 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + mask_mandate_days, data = final_df)
+anova(model_2_final_incremental_test1, model_2_final, test = "F")
 
-#model_base=cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density 
-#summary(lm.I)
-#resid(lm.I)
-#coeftest(m, vcov. = vcovHC(m, type = 'HC1'))
-#shapiro.test(lm.II$residuals)
-#bptest(lm.II)
+#Testing extended unemployment benefit days: Failed F-Test
+model_2_final_incremental_test2 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + unemployment_benefits_days, data = final_df)
+anova(model_2_final_incremental_test2, model_2_final, test = "F")
+
+#Testing increased unemployment insurance amount: Failed F-Test
+model_2_final_incremental_test3 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + increased_weekly_unemployment_insurance_amt_thru_jul31, data = final_df)
+anova(model_2_final_incremental_test3, model_2_final, test = "F")
+
+#Testing mask mandate days: Failed F-Test
+model_2_final_incremental_test4 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + business_closed_days_round1, data = final_df)
+anova(model_2_final_incremental_test4, model_2_final, test = "F")
+
+#Testing quarantine mandate days: Failed F-Test
+model_2_final_incremental_test5 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + travel_quarantine_mandate_days, data = final_df)
+anova(model_2_final_incremental_test5, model_2_final, test = "F")
+
+#Testing stay at home mandate days: Failed F-Test
+model_2_final_incremental_test6 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + stay_at_home_days, data = final_df)
+anova(model_2_final_incremental_test6, model_2_final, test = "F")
 ```
 
 
@@ -511,7 +546,6 @@ resid<-function(lm.model)
 
 <!-- ```{r adding mask_mandate_flag  as an indicator variable to base mode} -->
 <!-- model_IV_flag -->
-<!-- lm.IV_flag=lm(model_IV_flag,data=final_df) -->
 <!-- summary(lm.IV_flag) -->
 <!-- resid(lm.IV_flag) -->
 <!-- shapiro.test(lm.IV_flag$residuals) -->
