@@ -781,13 +781,20 @@ summary(model_1_final)
 cat(" \n \n \n")
 
 #-------Model Residual Plot-------
-qplot(model_1_final$residuals,
-               geom = "histogram", bins = 20) +
-         labs(title = "Histogram of Model 1 Residuals",
-              x = "Residual") +
-  theme(axis.text=element_text(size=8),
-        axis.title=element_text(size=8),
-        plot.title = element_text(size = 10))
+# qplot(model_1_final$residuals,
+#                geom = "histogram", bins = 20) +
+#          labs(title = "Histogram of Model 1 Residuals",
+#               x = "Residual") +
+#   theme(axis.text=element_text(size=8),
+#         axis.title=element_text(size=8),
+#         plot.title = element_text(size = 10))
+
+m<-mean(model_1_final$residuals)
+std<-sqrt(var(model_1_final$residuals))
+hist(model_1_final$residuals, freq=F, breaks=12, xlab='Model 1 residuals',
+     main="Histogram of Model 1 Residuals vs Normal Dist.")
+curve(dnorm(x , mean = m, sd = std ),col="red", lwd=2, add=TRUE, yaxt="n")
+
 
 #print new line
 cat(" \n \n")
