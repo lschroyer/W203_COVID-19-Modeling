@@ -472,11 +472,12 @@ panel.cor<-function(x,y)
 cat(" \n \n")
 # m1 %>% names()
 pairs(m1,
-      gap = 0.5,
+      cex.labels=1, gap = 0.5,
       lower.panel = panel.cor,
       upper.panel = panel.smooth,
-      labels = c("First Business\nClosure", "First Business\nClosure","SOE date", 
-                 "Cases", "Diff in Days"),
+      diag.panel = panel.hist,
+      labels = c("Cases", "Mask Mandate Days","Unemp. Benef. Days", 
+                 "Incr. Unempl. Insur."),
       main = "Policy Days vs Cases Per Capita Distribution and Scatter Plots")
 
 
