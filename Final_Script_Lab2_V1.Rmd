@@ -1472,7 +1472,8 @@ z <- data.frame(
              final_df$travel_quarantine_mandate_days,
              final_df$stay_at_home_days) %>%
   dplyr::rename(
-             'Cases' = final_df.cases_per_100k_at_365d, 
+             'Cases' = final_df.cases_per_100k_at_365d,
+             'Transit Mobility Change' = final_df.median_transit_change,
              'Pct. Under Age 25' = final_df.pop_pct_age_0_24,
              'Population Density' = final_df.population_density,
              'Mask Days' = final_df.mask_mandate_days,
