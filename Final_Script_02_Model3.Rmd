@@ -3,9 +3,8 @@ title: "Model 3 clean_script"
 author: "Jun Qian, Lucas Schroyer, Ryan Mitchell, Oliver Chang"
 date: "4/8/2021"
 output: 
-  html_document: default
   pdf_document: default
-
+  #html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -49,6 +48,9 @@ library(lmtest)
 library(corrplot)
 library(psych)
 library(stargazer)
+
+# tinytex::install_tinytex()
+
 ```
 
 
@@ -59,15 +61,36 @@ load("pwd/model_2_workspace.RData")
 
 # Third Model
 
-$$ 
-\text{ Model  3  }:\   
-\begin{equation}
-  \text{cases_per_100k_at_365d}=\beta_0 + \beta_1 \text{median_transit_change} + \beta_2 \text{pop_pct_age_0_24} + \beta_3 \text{population_density} + \beta_4    \text{mask_mandate_days} + \beta_5    \text{unemployment_benefits_days}+\beta_6    \text{increased_weekly_unemployment_insurance_amt_thru_jul3}+ \beta_7    \text{business_close_open_days}+ \beta_8    \text{travel_quarantine_mandate_days}+ \beta_9    \text{stay_at_home_days} \epsilon
-\end{equation}
-$$
+<!-- $$  -->
+<!-- \text{ Model  3}:\ -->
+<!--   cases_per_100k_at_365d}=\beta_0 + \beta_1 \text{median_transit_change} + \\ -->
+<!--   \beta_2 \text{pop_pct_age_0_24} + \beta_3 \text{population_density} + \\ -->
+<!--   \beta_4 \text{mask_mandate_days} + \beta_5 \text{unemployment_benefits_days} + \\ -->
+<!--   \beta_6 \text{increased_weekly_unemployment_insurance_amt_thru_jul3} + \\ -->
+<!--   \beta_7 \text{business_close_open_days} + \beta_8 \text{travel_quarantine_mandate_days} + \\ -->
+<!--   \beta_9 \text{stay_at_home_days} + \epsilon -->
+<!-- $$ -->
 
-```{r model 3}
-model_3_final <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + mask_mandate_days + unemployment_benefits_days + increased_weekly_unemployment_insurance_amt_thru_jul31 + business_closed_days_round1 + travel_quarantine_mandate_days + stay_at_home_days, data = final_df)
+### Model 3:
+
+<!-- \begin{equation} -->
+<!-- \text{cases_per_100k_at_365d} &= \beta_0 + \beta_1 \text{median_transit_change} \\ -->
+<!--   &+ \beta_2 \text{pop_pct_age_0_24} + \beta_3 \text{population_density} \\ -->
+<!--   &+ \beta_4 \text{mask_mandate_days} + \beta_5 \text{unemployment_benefits_days}\\ -->
+<!--   &+ \beta_6 \text{increased_weekly_unemployment_insurance_amt_thru_jul3}\\ -->
+<!--   &+ \beta_7 \text{business_close_open_days} + \beta_8 \text{travel_quarantine_mandate_days}\\ -->
+<!--   &+ \beta_9 \text{stay_at_home_days} + \epsilon -->
+<!-- \end{equation} -->
+
+
+```{r model 3, echo=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
+model_3_final <- lm(cases_per_100k_at_365d ~ median_transit_change +
+                      pop_pct_age_0_24 + population_density +
+                      mask_mandate_days + unemployment_benefits_days + 
+                      increased_weekly_unemployment_insurance_amt_thru_jul31 + 
+                      business_closed_days_round1 + 
+                      travel_quarantine_mandate_days + stay_at_home_days, 
+                    data = final_df)
 
 summary(model_3_final)
 
@@ -100,17 +123,58 @@ qplot(model_3_final$fitted, model_3_final$residuals,
 # Regression Table
 
 ```{r regression table}
-robust_se_1 <- coeftest(model_1_final, vcovHC(model_1_final, type = 'HC3'))[ , "Std. Error"]
-robust_se_2 <- coeftest(model_2_final, vcovHC(model_2_final, type = 'HC3'))[ , "Std. Error"]
-robust_se_3 <- coeftest(model_3_final, vcovHC(model_3_final, type = 'HC3'))[ , "Std. Error"]
+robust_se_1 <- coeftest(model_1_final,
+                        vcovHC(model_1_final, type = 'HC3'))[ , "Std. Error"]
 
+robust_se_2 <- coeftest(model_2_final,
+                        vcovHC(model_2_final, type = 'HC3'))[ , "Std. Error"]
+
+robust_se_3 <- coeftest(model_3_final,
+                        vcovHC(model_3_final, type = 'HC3'))[ , "Std. Error"]
+```
+
+```{r stargazer, echo=FALSE}
 # Print results
-stargazer(model_1_final, model_2_final, model_3_final, type = "text",
-          se = list(robust_se_1, robust_se_2, robust_se_3),
-          title = "Table 1: OLS models for COVID-19 Spread",
-          column.sep.width = "3pt")
+# stargazer(model_1_final, model_2_final, model_3_final,
+#           type = "text",
+#           se = list(robust_se_1, robust_se_2, robust_se_3),
+#           title = "Table 1: OLS models for COVID-19 Spread",
+#           column.sep.width = "0.5pt",
+#           align=TRUE, 
+#           header = FALSE,
+#           font.size = "small",
+#           single.row = TRUE,
+#           out = "pwd/fit_lm.txt") # to put coefficients and standard errors on same line
+
+
+# jp
+# stargazer(model_1_final, model_2_final, model_3_final,
+#           type = 'text',
+#           title = "Table 1: OLS models for COVID-19 Spread",
+#           # float.env = "sidewaystable",
+#           covariate.labels=c("median_transit_change",
+#                              "pop_pct_age_0_24", 
+#                              "population_density",
+#                              "mask_mandate_days",
+#                              "unemployment_benefits",
+#                              "increased_weekly_unemp",
+#                              "business_closed_days",
+#                              "travel_quarantine_man",
+#                              "stay_at_home_days"),
+#           # rownames = FALSE, 
+#           se = list(robust_se_1, robust_se_2, robust_se_3)
+#           # font.size=6,
+#           # header=FALSE, # to get rid of r package output text
+#           # single.row = TRUE, # to put coefficients and standard errors on same line
+#           # no.space = TRUE, # to remove the spaces after each line of coefficients
+#           # column.sep.width = "1pt", # to reduce column width
+#           # font.size = "small" # to make font size smaller
+# 
+# )
 
 ```
+
+![stargazer output](pwd/fit_lm.png)
 
 
 # Plots, Figures, and Tables 
