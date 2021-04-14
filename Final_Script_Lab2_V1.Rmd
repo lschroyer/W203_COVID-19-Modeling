@@ -69,7 +69,7 @@ As of the writing of the document, the COVID-19 coronavirus (COVID-19) has been 
 
 Our team’s primary research question was “How does mobility impact the spread of COVID-19?” To begin to answer that question, our research team decided to conduct an exploratory observational analysis using OLS regression to measure the complex relationships that exist between changes in a states’ population mobility and state-level COVID-19 case counts per 100K people in the 365 days following each state’s declaration of a state of emergency (SOE). As part of this endeavor, we also explore whether other variables, such as state age demographics, population density, and state level policies on mask mandates, stay at home orders, quarantine restrictions, enhanced unemployment benefits, and business closures might also have an impact on COVID case counts.
 
-This research question was initially motivated as an attempt to understand if the preventive measures that states have enacted in response to the pandemic were associated with statistically significant changes in case counts. Initially, we had hoped to find a causal relationship between mobility and COVID case counts. However, we ultimately decided against this because of the high likelihood of  reverse causality between these variables (i.e. a change in mobility causes a change in case counts which in turn will cause a change in mobility). Additionally, given how complex the nature of pandemics are, there was a strong possibility for omitted variable bias (such as state level differences in temperature and humidity, behavioral differences in terms of mask compliance, COVID testing availability, the percentage and absolute numbers of people using mass transit, and the percentage and absolute numbers of people who are able to work from home, to name a few). These omitted variables will be discussed in the model limitations section of this report.
+This research question was initially motivated as an attempt to understand if the preventive measures that states have enacted in response to the pandemic were associated with statistically significant changes in case counts. Initially, we had hoped to find a causal relationship between mobility and COVID case counts. However, we ultimately decided against this because of the high likelihood of reverse causality between these variables (i.e. a change in mobility causes a change in case counts which in turn will cause a change in mobility). Additionally, given how complex the nature of pandemics are, there was a strong possibility for omitted variable bias (such as state level differences in temperature and humidity, behavioral differences in terms of mask compliance, COVID testing availability, the percentage and absolute numbers of people using mass transit, and the percentage and absolute numbers of people who are able to work from home, to name a few). These omitted variables will be discussed in the model limitations section of this report.
 We decided to focus on COVID cases as our dependent variable, as opposed to COVID deaths, because we inferred that COVID deaths counts are directly dependent on the number of COVID cases and other causal inputs, such as genetic predisposition, underlying health conditions/comorbidities, hospital utilization rates, the availability of various treatment options (ventilators, experimental drugs, etc.). Given COVID cases are a direct input to COVID deaths and much of the data needed to analyze these supplemental variables is not easily available or likely does not exist, a study on COVID death counts may suffer from substantial omitted variable bias. This would raise questions about the interpretation of our model in terms of both statistical and practical significance. 
 
 Our motivation for normalizing the dependent variable per 100K people 365 days after each state’s declaration of a state of emergency was as follows: 
@@ -80,7 +80,7 @@ Our motivation for normalizing the dependent variable per 100K people 365 days a
 
 We decided to regress on population mobility as our key variable of interest because: 
 
-* Mobility fits well into a causal regression framework for COVID cases, because physical proximity is a requirement for disease transmission, and proximity is a function of mobility (and population density, which we will also explore in our modeling efforts). 
+* Although we did not conduct a causal study, mobility fits well into a causal regression framework for COVID cases, because physical proximity is a requirement for disease transmission, and proximity is a function of mobility (and population density, which we will also explore in our modeling efforts). As such, we expected that it could have a strong relationshio with case counts and thus included it in our exploratory study.
 
 * The mobility data captures the actual effects of multiple correlated policies intended to reduce COVID transmission (such as stay-at-home orders, quarantine requirements after traveling or possible exposure to a person who tested positive, business and school closures, etc.). This is effectively a method of dimensionality reduction that contributes to model parsimony.
 
@@ -88,7 +88,7 @@ We decided to regress on population mobility as our key variable of interest bec
 
 # Feature Selection for OLS Regression
 
-For this study, we aggregated the different data sources across their individual study horizons (in most cases, more than one year) to generate a small sample of 50 state-level observations. The table below summarizes the features we analyzed for our descriptive OLS regression models to understand their association with the dependent variable (i.e. case count per 100,000 people): 
+For this study, we aggregated the different data sources across their individual study horizons (in most cases, more than one year) to generate a small sample of 50 state-level observations. The table below summarizes the nine features we ultimately included for our descriptive OLS regression models to understand their association with the dependent variable (i.e. case count per 100,000 people): 
 
 | Feature | Present in Which Model | Source |
 |:-----------------|:----|:------|
@@ -119,22 +119,20 @@ Other model 3 policy features: We selected the following policy-related features
 
 # Initial Data Loading and Cleaning
 
-First, we read in the NYT COVID database from an excel workbook (see the data folder in our repository for all of the raw data files used in this analysis). 
+The primary data loading and cleaning steps for this report included the following:
 
-```{r read in NYT covid data, echo=FALSE, warning=FALSE, message=FALSE}
+1. First, we read in the NYT COVID database from an excel workbook (see the data folder in our repository for all of the raw data files used in this analysis). 
 
-
+```{r read in NYT covid data, echo=TRUE, warning=FALSE, message=FALSE}
 ## Pull data from NYT COVID Database and plot summary
 NYT_Data <- fread("https://raw.githubusercontent.com/nytimes/covid-19-data/master/us-states.csv")
-#summary(NYT_Data)
 
 ## Convert date strings to dates. 
 NYT_Data[,date:=as.Date(date)]
-#summary(NYT_Data)
 
 ## Calculate cases on a time interval
-start.date <- as.Date("2021-01-01")
-end.date <- as.Date("2021-02-28")
+# start.date <- as.Date("2021-01-01")
+# end.date <- as.Date("2021-02-28")
 
 interval.cases <- NYT_Data %>%
   arrange(state, date) %>% 
@@ -147,9 +145,9 @@ interval.cases <- NYT_Data %>%
 
 ```
 
-Then, we read in the policy data from an excel workbook downloaded from the US State Policy Database.
+2. Then, we read in the policy data from an excel workbook downloaded from the US State Policy Database.
 
-```{r read in policy data script, echo=FALSE, message=FALSE, warning=FALSE}
+```{r read in policy data script, echo=TRUE, message=FALSE, warning=FALSE}
 tab_names <- excel_sheets(path = "data/US_Covid_Policy_data.xlsx")
 
 list_all <- lapply(tab_names, 
@@ -173,11 +171,11 @@ for (df in 1:length(list_all)){
   
   names(list_all[[df]]) <- gsub(" ", "_", names(list_all[[df]]) %>% tolower())
 }
+```
 
-# names(list_all$Stay.At.Home) <- list_all$Stay.At.Home[1,]
-# list_all$Stay.At.Home <- list_all$Stay.At.Home[-1,]
+*Note: the rest of the R code used to read in the remaining observations/datasets has been suppressed for report readability. From this point onward, we only print code that is necessary for the report narrative. Please refer do this project's [GitHub repository](https://github.com/lschroyer/W203_Lab2_ChangMitchellQianSchroyer.git) for the full R-markdown file*
 
-
+```{r edit policy data, echo=FALSE, message=FALSE, warning=FALSE}
 #Join the separate sheets into one master sheet
 policy_df_0 <- list_all$State.Characteristics %>%
   select(state, state_abbreviation, state_fips_code,
@@ -264,7 +262,7 @@ end_travel_quarantine_mandate = as.Date(end_travel_quarantine_mandate,
 #saveRDS(policy_df_0, file = "pwd/AggregatedPolicyData.rds")
 ```
 
-Then, we read in the Google dataset (from an excel workbook) on state-level changes in mobility data. 
+3. Then, we read in the Google dataset (from an excel workbook) on state-level changes in mobility data. 
 
 ```{r load mobility data, echo=FALSE, warning=FALSE, message=FALSE}
 US_mobility_data_0 <- read_csv("data/2020_US_Region_Mobility_Report.csv", 
@@ -278,7 +276,7 @@ names(US_mobility_data_0) <-  names(US_mobility_data_0) %>%
 
 ```
 
-Next, we read in three spreadsheets available for download from the U.S. Census Bureau to obtain county-level demographics, including population and area.
+4. Next, we read in three spreadsheets available for download from the U.S. Census Bureau to obtain county-level demographics, including population and area.
 
 ```{r load census county population and area data, echo=FALSE, warning=FALSE, message=FALSE}
 #Read in Census Data
@@ -324,7 +322,7 @@ US_population_by_county <- US_population_by_county_0 %>%
           
 ```
 
-Now that we have read in all of the raw datasets we will use in this study, we joined the mobility data with the county-level population and area data.
+5. Now that we have read in all of the raw datasets we will use in this study, we joined the mobility data with the county-level population and area data.
 
 ```{r join census and mobility data, echo=FALSE, warning=FALSE, message=FALSE, fig.width=4, fig.height=3}
 US_mobility_data <- US_mobility_data_0 %>% 
@@ -432,9 +430,9 @@ US_mobility_data3 <- US_mobility_data2_highpopdens %>%
             by = "Stname")
 ```
 
-With the county level population observations and mobility observations, we then calculated the weighted average change in mobility at the state level.
+6. With the county level population observations and mobility observations, we then calculated the weighted average change in mobility at the state level.
 
-Finally, we join the state-level mobility observations with the added population and percentage of population in a high density area features to the NYT Covid database by state and date.
+7. Finally, we join the state-level mobility observations with the added population and percentage of population in a high density area features to the NYT Covid database by state and date.
 
 
 ```{r join mobility-census data with COVID data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -500,7 +498,7 @@ stopifnot(US_cases_and_mobility %>% nrow()
 
 # Exploratory Data Analysis
 
-The first step of our EDA was to determine which mobility metric to use from Google in order to answer our primary research question, which was: “How does mobility impact the spread of COVID-19?” We began by exploring the correlations that existed in between the Google observations between Transit, Retail, Grocery, Workplace, Residential, and Parks.
+The first step of our exploratory data analysis (EDA) was to determine which mobility metric to use from the Google mobility dataset in order to answer our intial secondary research question, which was: “How does mobility impact the spread of COVID-19?” We began by exploring the correlations that existed in between the Google observations between Transit, Retail, Grocery, Workplace, Residential, and Parks.
 
 
 ```{r data wrangling and final df, echo=FALSE, message=FALSE, warning=FALSE, fig.width=4, fig.height=3}
@@ -558,7 +556,10 @@ M <- cor(z)
 mat1 <- data.matrix(M)
 ```
 
+
+
 ```{r fig.cap = "Correlation Matrix: Median Mobility Changes by Category", echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, out.width="90%"}
+cat(" \n ")
 corrplot(mat1, method = "color", 
          tl.col = 'black', is.corr=FALSE, 
          # title = 'Correlation Matrix: State Policies vs. Cases',
@@ -622,7 +623,7 @@ final_df <- cases_at_365 %>%
 
 ```
 
-After inspection of the correlation matrix between the different measures of mobility changes, we chose to use the state-level median change in transit mobility in the 365 days after each state declared an emergency as our main variable of interest for Model 1. Our motivation for choosing transit over the other mobility features was as follows:
+After inspection of the correlation matrix (above) between the different measures of mobility changes, we chose to use the state-level median change in transit mobility in the 365 days after each state declared an emergency as our main variable of interest for Model 1. Our motivation for choosing transit over the other mobility features was as follows:
 
 1) Transit is most closely aligned with our understanding of how viruses spread, particularly from one locality or population center to another. 
 
@@ -635,6 +636,7 @@ After inspection of the correlation matrix between the different measures of mob
 5) The only mobility metric that was not strongly correlated with the others was Parks. Since the median change in Park mobility was not strongly correlated with any other mobility changes, we examined its relationship with our target variable but did not observe a positive or negative linear relationship. A t-Test on our calculated simple regression coefficient failed to reject the null hypothesis that there was no evidence that the coefficient for change in median Parks mobility was measurably different than zero. 
 
 ```{r parks test, echo=FALSE, message=FALSE}
+cat("Park Mobility and COVID CASES per 100K People Regression for EDA")
 # Simple regression model on the relationship between change in parks mobility 
 # and COVID cases per 100K people. (Not significant)
 model_p <- lm(cases_per_100k_at_365d ~ parks, data = final_df)
@@ -821,7 +823,18 @@ final_df$business_closed_days_round1 = m1$diff_in_days
 ```
 
 
-# Model 1
+# Model 1 - OLS Regression Development and Continued EDA
+
+For our first model that explores the association between transit mobility and changes in COVID case counts, we used R's lm function to create an OLS regression between case counts conditional on percentage change in median transit mobility. We then generated some summary plots and statistics to analyze the result of our OLS regression, including:
+
+- summary statistics of the OLS regression
+- the distribution of the error terms
+- the scatter plot of the fitted values with the residuals
+- the Breusch-Pagan test to assess Homoskedasticity
+- the calcualted robust standard errors for the OLS
+- Shapiro-Wilk normality of residuals test
+
+Throughout the report, we continued to run these tests (in additon to some other graphics and statistics). The result summary for these include:
 
 ```{r model 1, echo=FALSE, message=FALSE,fig.width=4, fig.height=3}
 model_1_final <- lm(cases_per_100k_at_365d ~ median_transit_change, data = final_df)
@@ -882,19 +895,20 @@ cat(" \n")
 
 The first parameter estimate returned by Model 1 is an intercept estimate of 10,370, which represents the expected number of COVID-19 cases per 100K people (in the first year after declaration of a state of emergency) if there were no change in transit mobility levels. Although the Breusch-Pagan test does not indicate that our Model 1 suffers from heteroskedasticity, we will err on the side of caution and use robust standard errors for claims of statistical significance throughout this report. The robust standard error on the intercept estimate is 610, which suggests that the intercept parameter estimate is statistically significant using a standard Type I error rate of 0.05.
 
-The results from Model 1 also tell us that a one percent increase in median transmit mobility is associated with 79 additional COVID-19 cases per 100K people. Equivalently, we can state that a one percent decrease in median transit mobility is associated with 79 fewer COVID-19 cases per 100K people. The robust standard error is 33, which indicates that the transit mobility parameter estimate is statistically significant using a standard Type I error rate of 0.05.
+The results from Model 1 also tell us that a one percent increase in median transit mobility is associated with 79 additional COVID-19 cases per 100K people. Equivalently, we can state that a one percent decrease in median transit mobility is associated with 79 fewer COVID-19 cases per 100K people. The robust standard error is 33, which indicates that the transit mobility parameter estimate is statistically significant using a standard Type I error rate of 0.05.
 
 Taken together, these two parameter estimates tell a story about what could have happened if people did not change their transit behavior in response to COVID-19. The observed average number of COVID-19 cases per 100K people was 8,860, which is lower than the intercept estimate of 10,370 because 1) on average, states recorded a 19% decrease in median transit mobility and 2) each percent decrease is associated with 79 fewer cases per 100K people. This paints a promising picture about how behavior and policy changes may reduce the spread of the virus.
 
-Although the Shapiro-Wilk normality test returned a p-value that rejects the null hypothesis of normally distributed residuals, we would like to note that we will be adding additional features to this model specification that should address the non-normality concern.
+Although the Shapiro-Wilk normality test returned a p-value that rejects the null hypothesis of normally distributed residuals, we would like to note that we will be adding additional features to this model specification that should address the non-normality concern (discussed in detail in later sections).
 
-# Model 2
+# Model 2 - OLS Regression Development and Continued EDA
 
-As we thought about an approach to building our Model 2 specifications, the general approach that our group decided to take was to incrementally test the addition of new features to our Model 1 specification in descending order of expected importance, according to our general understanding of how viruses spread. At each iteration, we began by examining the relationship (using scatterplots) between a new demographic or policy-related feature and our outcome of interest: COVID cases per 100K people 365 days after each state declared a state of emergency. If we observed a relationship, we ran a combination of t-Tests and/or ANOVA F-Tests to determine whether or not to add the feature to our Model 1 specification. We proceeded in this 'greedy' algorithmic fashion by adding variables to our Model 1 specification until we could no longer justify further additions based on results from ANOVA F-Tests. The first incremental feature we tested was derived from observational data from the census bureau on population age distributions by state. 
+As we thought about an approach to building our Model 2 specifications, the general approach our group decided to take was to incrementally test the addition of new features to our Model 1 specification in descending order of expected importance, according to our general understanding of how viruses spread. At each iteration, we began by examining the relationship (using scatterplots) between a new demographic or policy-related feature and our outcome of interest: COVID cases per 100K people 365 days after each state declared a state of emergency. If we observed a relationship, we ran a combination of t-Tests and/or ANOVA F-Tests to determine whether or not to add the feature to our Model 1 specification. We proceeded in this 'greedy' algorithmic fashion by adding feature to our Model 1 specification until we could no longer justify further additions based on results from ANOVA F-Tests. The first incremental feature we tested was derived from observational data from the census bureau on population age distributions by state. 
 
-One of the contributing factors to the spread of COVID-19 is asymptomatic spread. Younger people have been shown to have milder symptoms and therefore it stands to reason that they may be less likely to get tested, and ultimately end up spreading the disease at a greater rate than older age groups. Hence, for our second model, we were interested in testing a general hypothesis that age demographics may play a role in the spread of COVID-19. We began by doing some basic exploratory data analysis (EDA) with respect to age distributions and our target variable, cumulative COVID-19 case counts per 100K.
+One of the contributing factors to the spread of COVID-19 is asymptomatic spread. Younger people have been shown to have milder symptoms and therefore it stands to reason that they may be less likely to get tested, and ultimately end up spreading the disease at a greater rate than older age groups. Hence, for our second model, we were interested in testing a general hypothesis that age demographics may play a role in the spread of COVID-19. We began by doing some basic EDA with respect to age distributions and our target variable, cumulative COVID-19 case counts per 100K. We include the EDA code for our first added feature for the reader's reference. We omit the rest for readability but the steps follow the same basic pattern.
 
-```{r age EDA less than 24, echo=FALSE, message=FALSE, fig.width= 6, fig.height=3.5}
+```{r age EDA less than 24, echo=TRUE, message=FALSE, fig.width= 6, fig.height=3.5}
+#Pull the features of interest from our master data frame (i.e. percent age < 25)
 census_df<-final_df[c('cases_per_100k_at_365d', 
                       'Percent.Sex.And.Age.Total.Population.Under.5.Years', 
                       'Percent.Sex.And.Age.Total.Population.5.To.9.Years', 
@@ -902,6 +916,7 @@ census_df<-final_df[c('cases_per_100k_at_365d',
                       'Percent.Sex.And.Age.Total.Population.15.To.19.Years',
                       'Percent.Sex.And.Age.Total.Population.20.To.24.Years')]
 
+# rename columns
 names(census_df) <- names(census_df) %>% 
   gsub(pattern = "Percent.Sex.And.Age.Total.Population.", 
        replacement = "Pct. ") %>%  
@@ -910,6 +925,8 @@ names(census_df) <- names(census_df) %>%
   gsub(pattern = 'cases_per_100k_at_365d', 
        replacement = " Cases per \n 100k")
 
+# Create a series of plots illustrating the feature's observation distribution 
+# and a scatter plot with other features to assess colinearity
 panel.hist <- function(x, ...)
 {
     usr <- par("usr"); on.exit(par(usr))
@@ -1001,7 +1018,7 @@ pairs(census_df,
       diag.panel = panel.hist, cex.labels=1, gap = 0.5,
       labels = c("Cases", "Age 60-64%", "Age 65-74%", 
                  "Age 75-86%", "Age 85+ %"),
-      main = "Case vs Age (Contin.) Bins Distribution and Scatter Plots")
+      main = "Case vs Age (Contin. 2) Bins Distribution and Scatter Plots")
 ```
 
 
@@ -1059,7 +1076,7 @@ Next, we performed a series of ANOVA F-tests on a nested set of linear regressio
 
 Our first ANOVA F-test compared our Model 1 with a new model that had an additional parameter estimate for the percentage of the population under 5 years old. With a p-value of 0.0003, we rejected the null hypothesis and used this new model as the baseline model for subsequent comparisons with additional parameter estimates for different age categories. 
 
-We failed to reject the null hypothesis when adding an estimator for ages 5-9, and succeeded in rejecting the null hypothesis when adding an estimator for ages 10-14, with a p-value of 0.001. Adding additional estimators for 15-19 and 20-24 failed to reject the null hypothesis that these models were measurably better at reducing residuals. These results suggested creating two new features for the percentage of the population ages 0-9 and 10-24 and adding them to our base Model 1 to create the first specification for our Model 2.
+As shown in the Anova tables below, we failed to reject the null hypothesis when adding an estimator for ages 5-9, and succeeded in rejecting the null hypothesis when adding an estimator for ages 10-14, with a p-value of 0.001. Adding additional estimators for 15-19 and 20-24 failed to reject the null hypothesis that these models were measurably better at reducing residuals. These results suggested creating two new features for the percentage of the population ages 0-9 and 10-24 and adding them to our base Model 1 to create the first specification for our Model 2.
 
 ```{r, linewidth=60, echo=FALSE, message=FALSE}
 #Significant relative to Model 1
@@ -1081,6 +1098,7 @@ anova(model_e, model_d, test = "F")
 anova(model_e, model_c, test = "F")
 ```
 
+Here we calculate the correlation between our two binned age groups 0-9 and 10-24 years of age.
 
 ```{r df update 1, echo=FALSE, message=FALSE} 
 final_df <- final_df %>% 
@@ -1103,7 +1121,7 @@ final_df <- final_df %>%
 
 However, after measuring a 0.77 correlation between these two features - and with the goal of increased model parsimony - we decided to group them together to prevent the standard errors for their respective coefficients from increasing substantially. Let's take a look and assess whether this new variable for percentage of the population < 25 years old visually satisfies the conditional linearity expectation with respect to our target.
 
-```{r incremental variables 1, echo=FALSE, message=FALSE}
+```{r incremental variables 1, echo=FALSE, fig.align="center", message=FALSE, fig.width=4, fig.height=3}
 #print new line
 cat(" \n \n \n \n")
 
@@ -1143,7 +1161,7 @@ anova(model_2a, model_1_final, test = "F")
 After accounting for changes in mobility and demographic age differences between states, the next variable we wanted to explore as part of our descriptive model for COVID case counts was population density. According to the [World Health Organization](https://www.who.int/news-room/commentaries/detail/modes-of-transmission-of-virus-causing-covid-19-implications-for-ipc-precaution-recommendations), "COVID-19 virus is primarily transmitted between people through respiratory droplets and contact routes." In other words, COVID spreads primarily through physical interactions between infected and uninfected hosts, regardless of whether the actual mechanism of transmission is airborne or surface based contact. Hence, it stands to reason that more densely populated areas would see greater rates of infections, because the frequency of these physical interactions will increase with population density. This was the motivation for our group exploring whether a relationship existed between state population density and our outcome variable of interest.
 
 
-```{r incremental variables 2, echo=FALSE, message=FALSE}
+```{r incremental variables 2, echo=FALSE, message=FALSE, fig.align="center", fig.width=4, fig.height=3}
 #print new line
 cat(" \n ")
 
@@ -1182,7 +1200,7 @@ model_density <- lm(cases_per_100k_at_365d ~ population_density ,
 summary(model_density)
 ```
 
-In spite of this test, our group decided to move forward and try including the population density feature in Model 2, as we believed it to be a conceptually meaningful variable in describing the population prevalence of COVID in each state one year after each state declared a state of emergency. Therefore, we proceeded with an ANOVA F-Test to test whether the incremental population density feature measurably improved model performance (via reduction of residuals) relative to our interim Model 2 with features for median transit mobility change and percentage of the population < 25 years old. This ANOVA F-test returned a p-value of 0.002, enough to reject the null hypothesis that the model residuals were not measurably different from one another.
+In spite of this test, our group decided to move forward and try including the population density feature in Model 2, as we believed it to be a conceptually meaningful variable in describing the population prevalence of COVID in each state one year after each state declared a state of emergency. Therefore, we proceeded with an ANOVA F-Test to test whether this added population density feature measurably improved model performance (via reduction of residuals) relative to our interim Model 2 with features for median transit mobility change and percentage of the population < 25 years old. This ANOVA F-test returned a p-value of 0.002, enough to reject the null hypothesis that the model residuals were not measurably different from one another.
 
 
 ```{r model 2 - part 2, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
@@ -1194,13 +1212,13 @@ anova(model_2_final, model_2a, test = "F")
 cat("\n")
 ```
 
-Because the population density feature only becomes statistically significant at the p < 0.05 level in our model when we include features for median change in transit mobility and the percentage of the population under age 25, we say that the population density has a conditional relationship with our outcome of interest. Both of these two co-variates (median transit mobility change and percentage of the population under age 25) are negatively correlated with population density and positively correlated with our outcome variable. 
+Because the population density feature only becomes statistically significant at the p < 0.05 level when we include features in our model for median change in transit mobility and the percentage of the population under age 25, we say that the population density has a conditional relationship with our outcome of interest. Both of these two co-variates (median transit mobility change and percentage of the population under age 25) are negatively correlated with population density and positively correlated with our outcome variable. 
 
 However, we are only interested in the unique variation of population density with respect to our outcome variable. When the OLS regression algorithm calculates the parameter estimate for population density, it starts by regressing population density on the other model co-variate (input) features. The residuals from that regression represent the portion of population density that is *not* colinear with median transit mobility change and percentage of the population under age 25. Then OLS regresses our target values on those residuals to derive an estimate for the population density parameter. The model summary tells us that if we hold the percentage of the population under 25 and the median transit mobility change for a state constant (we do not allow them to co-vary), that there exists a positive correlation between population density and our outcome variable at a statistically significant level (p = 0.002) using classical standard errors. 
 
 At this point, we wanted to explore whether any state policy changes aimed at reducing the spread of COVID-19 added incremental descriptive power beyond our current Model 2 specification. In particular, we wanted to examine whether the duration of mask mandates, duration and amount of increased government assistance via enhanced unemployment benefits, duration of the first wave of business closures, duration of stay at home mandates, and duration of travel quarantine restrictions had measurable effects on our outcome of interest after accounting for the features already in our Model 2 specification (which included state-level features for median change in transit mobility, percentage of the population under 25 years of age, and population density). All the policy-related features were recorded as dates, except for the increased unemployment insurance amount, which was recorded as an integer. 
 
-To align with our target variable of COVID-19 Cases per 100K one year after state of emergency declaration, we encoded the date related policy variables as the total number of days each policy was in place for after the state of emergency was announced for each state (up to 365 days). For clarification purposes:
+To align with our target variable of COVID-19 Cases per 100K one year after state of emergency declaration, we encoded the date related policy variables as the total number of days each policy was in place for after the state of emergency was announced for each state (up to 365 days). Steps to transform this total days feature included:
 
 1. If a policy had no beginning and end dates, the total days were assigned as zero.
 2. If a policy had beginning but not end dates, the total days were calculated by the date of state emergency declared + 364 days - the date of the beginning of the policy.
@@ -1365,15 +1383,16 @@ Unemployment insurance extensions and benefit increases can also be conceptually
 
 Our team was surprised, however, that information on the presence and length of state mask mandate policies did not incrementally benefit our baseline Model 2 performance as mask policies did not, in our estimation, share an obvious link to transit mobility or the percentage of the population under age 25. We did expect to see a material positive correlation between the duration of the mask mandate policy and population density, but even if we were to exclude population density from our model specification and substitute in the duration of the mask mandate feature, a t-Test indicates that the parameter estimate is not significant at the 0.05 level.  
 
-```{r mask mandate substitution concept}
+```{r mask mandate substitution concept, echo=FALSE}
 model_2_final_substitution <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + mask_mandate_days, data = final_df)
 summary(model_2_final_substitution)
 ```
 
-Hence, by process of elimination, we have arrived at our final Model 2 specification.
+Hence, by process of elimination, we have arrived at our final Model 2 specification. As with Model 1, we provide some summary plots and statistics to analyze the result of our OLS regression for Model 2.
 
 ```{r model 2 - final, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
-model_2_final <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density, data = final_df)
+model_2_final <- lm(cases_per_100k_at_365d ~ median_transit_change + 
+                      pop_pct_age_0_24 + population_density, data = final_df)
 
 summary(model_2_final)
 cat("\n")
@@ -1424,11 +1443,11 @@ Finally, Model 2 estimates an increase of 4.7 COVID-19 cases per 100K people for
 
 Note: The Shapiro-Wilk normality test failed to reject the null hypothesis that the residuals for Model 3 were normally distributed (p > 0.05).
 
-# Model 3
+# Model 3 - OLS Regression Development and Continued EDA
 
 For Model 3, we added the six additional policy co-variates as described in the previous EDA section to further explore whether including information on government-enacted COVID-19 policies could measurably reduce residuals relative to our Model 2 specification. These six features were as follows: duration of mask mandates, duration and amount of increased government assistance via enhanced unemployment benefits, duration of the first wave of business closures, duration of stay at home mandates, and duration of travel quarantine restrictions.
 
-We previously considered the addition of each of these six variables incrementally (in isolation) to our Model 2 specification, but did not have statistical justification to include them. We also discussed the rationale for why these additional policy features may be correlated with the features we have already created and included in Model 2, and recognize that the colinearities with existing features in the model will limit the amount of unique variance of our target variable that each of the features can explain. Still, we have decided to include these six policy features in our specification for Model 3 because they do not demonstrate perfect colinearity with our existing features and all of the policies can be conceptually linked to the number COVID cases per 100K people. 
+We previously considered the addition of each of these six variables incrementally (in isolation) to our Model 2 specification, but did not have statistical justification to include them. We also discussed the rationale for why these additional policy features may be correlated with the features we have already created and included in Model 2, and recognize that the colinearities with existing features in the model will limit the amount of unique variance of our target variable that each of the features can explain. Still, we have decided to include these six policy features in our specification for Model 3 because they do not demonstrate perfect colinearity with our existing features and all of the policies can be conceptually linked to the number COVID cases per 100K people. As with Model 1 and 2, we again provide summary statistics and plots for our Model 3 OLS regression result.
 
 ```{r policy correlation plot 3, echo=FALSE, message=FALSE}
 z <- data.frame(
