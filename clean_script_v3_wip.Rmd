@@ -1013,13 +1013,47 @@ corrplot(mat1, method = "color", tl.col = 'black', is.corr=FALSE, title = 'Corre
 
 From the scatterplots, we see varying degrees of linearity between the policy features and our outcome of interest. We tested each of these features iteratively in the same manner as before, using significance from ANOVA F-tests as the benchmark to decide whether or not to include incremental policy features as part of our final Model 2. Ultimately, none of these policy variables (length of mask mandates, length and amount of increased government assistance via enhanced unemployment benefits, length business closures, length of stay at home mandates, and length of travel quarantine restrictions) returned a p-value that would allow us to reject the null hypothesis that the model residuals had not measurably improved.
 
-Still, it is worth noting that all of the aforementioned policy features, which were declared to mitigate COVID spread, demonstrated a negative correlation (from approximately -0.5 to -0.2) with our outcome variable of COVID cases per 100k people. The fact that these policy features failed to reject the null hypothesis in the ANOVA F-Test relative to the features already in our Model 2 was not entirely unexpected. Conceptually, several of the features share a significant amount information with median transit mobility change. One could make the argument that business closures, quarantine mandates, and stay at home mandates are all captured, to some extent, in the transit mobility change. 
+Still, it is worth noting that all of the aforementioned policy features, which were declared to mitigate COVID spread, demonstrated a negative correlation (from approximately -0.5 to -0.2) with our outcome variable of COVID cases per 100k people. The fact that these policy features failed to reject the null hypothesis in the ANOVA F-Test against the features already in our Model 2 was not entirely unexpected. Conceptually, several of the features share a significant amount information with median transit mobility change. One could make the argument that business closures, quarantine mandates, and stay at home mandates are all captured, to some extent, in the transit mobility change. 
 
-# Ryan fleshing out writing here
+Unemployment insurance extensions and benefit increases can also be conceptually linked with reduced transit mobility. Near the outset of the pandemic in April 2020, unemployment rates peaked at 14.7% - up from a baseline of 3.5% in February of 2020 (Source: https://www.bls.gov/opub/ted/2020/unemployment-rate-falls-to-6-point-9-percent-in-october-2020.htm#:~:text=Bureau%20of%20Labor%20Statistics,-The%20Economics%20Daily&text=The%20unemployment%20rate%20decreased%20by,February%20rate%20of%203.5%20percent). By increasing the length and amount of unemployment benefits, states kept a substantial number of these laid off employees, totaling 11.2% of the work-force, from needing to find a new means of employment in the short term. This, combined with the fact that these employees no longer needed to commute to work, likely caused reduced transit mobility. 
 
-Unemployment insurance extensions and benefit increases
+Our team was surprised, however, that information on the presence and length of state mask mandate policies did not incrementally benefit our baseline Model 2 performance as mask policies did not, in our estimation, share an obvious link to transit mobility or the percentage of the population under age 25. We did expect to see a material positive correlation between the duration of the mask mandate policy and population density, but even if we were to exclude population density from our model specification and substitute in the duration of the mask mandate feature, a t-Test indicates that the parameter estimate is not significant at the p=0.05 level.  
 
-We were surprised, however, that mask mandates 
+```{r mask mandate substitution concept}
+model_2_final_substitution <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + mask_mandate_days, data = final_df)
+summary(model_2_final_substitution)
+```
+
+```{r policy correlation plot 2, echo=FALSE, message=FALSE}
+z <- data.frame(
+  #final_df$cases_per_100k_at_365d, 
+             final_df$median_transit_change,
+             final_df$pop_pct_age_0_24,
+             final_df$population_density,
+             final_df$mask_mandate_days,
+             final_df$unemployment_benefits_days,
+             final_df$increased_weekly_unemployment_insurance_amt_thru_jul31,
+             final_df$business_closed_days_round1,
+             final_df$travel_quarantine_mandate_days,
+             final_df$stay_at_home_days) %>%
+  dplyr::rename(
+    #cases_per_100k = final_df.cases_per_100k_at_365d, 
+             transit_change = final_df.median_transit_change,
+             pct_under_25 = final_df.pop_pct_age_0_24,
+             pop_density = final_df.population_density,
+             mask_days = final_df.mask_mandate_days,
+             ue_ben_days = final_df.unemployment_benefits_days,
+             ue_ins_amt = final_df.increased_weekly_unemployment_insurance_amt_thru_jul31,
+             biz_closed_days = final_df.business_closed_days_round1,
+             quarantine_days = final_df.travel_quarantine_mandate_days,
+             stay_at_home_days = final_df.stay_at_home_days)
+
+#Visualize the correlation between state policies and cases
+M <- cor(z)
+mat1 <- data.matrix(M)
+print(M)
+corrplot(mat1, method = "color", tl.col = 'black', is.corr=FALSE, title = 'Correlation Matrix: State Policies vs. Cases', addCoefasPercent = TRUE,  addCoef.col = "white")
+```
 
 
 # Jun's policy tests (all failed) for Model 2 here (to be reviewed...):
