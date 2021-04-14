@@ -870,7 +870,7 @@ qplot(model_1_final$fitted, model_1_final$residuals,
                          y = model_1_final$residuals),
             colour = 'blue',
             method = "loess", se = TRUE) +
-         labs(title = "Plot of Residuals vs Fitted Values",
+         labs(title = "Model 1 Plot of Residuals vs Fitted Values",
               x = "Fitted Values",
               y = "Residual") +
   theme(axis.text=element_text(size=8),
@@ -1420,9 +1420,12 @@ qplot(model_2_final$fitted, model_2_final$residuals,
                          y = model_2_final$residuals),
             colour = 'blue',
             method = "loess", se = TRUE) +
-         labs(title = "Plot of Residuals vs Fitted Values",
+         labs(title = "Model 2 Plot of Residuals vs Fitted Values",
               x = "fitted value",
-              y = "residual")
+              y = "residual") +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8),
+        plot.title = element_text(size = 10))
 
 
 cat("\n-------Homoskedasticity Test-------\n")
@@ -1533,9 +1536,12 @@ qplot(model_3_final$fitted, model_3_final$residuals,
                          y = model_3_final$residuals),
             colour = 'blue',
             method = "loess", se = TRUE) +
-         labs(title = "Plot of residuals vs fitted values",
+         labs(title = "Model 3 Plot of residuals vs fitted values",
               x = "fitted value",
-              y = "residual")
+              y = "residual") +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8),
+        plot.title = element_text(size = 10))
 
 
 cat("\n-------Homoskedasticity Test-------\n")
@@ -1652,9 +1658,12 @@ qplot(model_2_final$fitted, model_2_final$residuals,
                          y = model_2_final$residuals),
             colour = 'blue',
             method = "loess", se = TRUE) +
-         labs(title = "Plot of residuals vs fitted values for Model 2",
+         labs(title = "Model 2 Plot of residuals vs fitted values",
               x = "fitted value",
-              y = "residual")
+              y = "residual") +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8),
+        plot.title = element_text(size = 10))
 
 bptest(model_2_final)
 ```
