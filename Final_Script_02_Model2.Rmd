@@ -36,7 +36,7 @@ require(plotrix)
 # install.packages("webshot")
 library("magick")
 library("webshot")
-webshot::install_phantomjs()
+# webshot::install_phantomjs()
 
 #install.packages("openxlsx") 
 library(openxlsx)
@@ -69,7 +69,7 @@ As we thought about an approach to building our Model 2 specifications, the gene
 
 One of the contributing factors to the spread of COVID-19 is asymptomatic spread. Younger people have been shown to have milder symptoms and therefore it stands to reason that they may be less likely to get tested, and ultimately end up spreading the disease at a greater rate than older age groups. To make matters worse, younger people tend to interact with more people (source?) as a result of being in school (switching between classrooms, touching desks and other surfaces where other students have been, congregating in large cafeterias, etc.), which increases the probability of viral transmission. Hence, for our second model, we were interested in testing our general hypothesis that age demographics may play a role in the spread of COVID-19. We began by doing some basic exploratory data analysis (EDA) with respect to age distributions and cumulative COVID-19 case counts per 100K, which is our target variable for Lab 2.
 
-```{r age EDA less than 24, echo=FALSE, message=FALSE}
+```{r age EDA less than 24, echo=FALSE, message=FALSE, fig.width= 6, fig.height=3.5}
 census_df<-final_df[c('cases_per_100k_at_365d', 
                       'Percent.Sex.And.Age.Total.Population.Under.5.Years', 
                       'Percent.Sex.And.Age.Total.Population.5.To.9.Years', 
@@ -77,7 +77,9 @@ census_df<-final_df[c('cases_per_100k_at_365d',
                       'Percent.Sex.And.Age.Total.Population.15.To.19.Years',
                       'Percent.Sex.And.Age.Total.Population.20.To.24.Years')]
 
-names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  
+names(census_df) <- names(census_df) %>% 
+  gsub(pattern = "Percent.Sex.And.Age.Total.Population.", 
+       replacement = "Pct. ") %>%  
   gsub(pattern = ".To.", replacement = "- \n") %>%  
   gsub(pattern = ".Years", replacement = " Yrs") %>%  
   gsub(pattern = 'cases_per_100k_at_365d', 
@@ -101,25 +103,32 @@ panel.cor<-function(x,y)
     text(0.5,0.5,r)
   }
 
-census_df %>% names()
+# census_df %>% names()
 pairs(census_df,lower.panel = panel.cor,
       upper.panel = panel.smooth, 
       diag.panel = panel.hist, 
       cex.labels=1, 
       gap = 0.5,
-      labels = c("Cases", "%<5", "% 5-9", "%10-14", "%15-19", "%20-24"),
-      main = "")
-
-
-
+      labels = c("Cases", "Age <5%", "Age 5-9%", "Age 10-14%", 
+                 "Age 15-19%", "Age 20-24%"),
+      main = "Case vs Age Bins Distribution and Scatter Plots")
 
 ```
 
 
-```{r age EDA 25-59, echo=FALSE, message=FALSE}
-census_df<-final_df[c('cases_per_100k_at_365d', 'Percent.Sex.And.Age.Total.Population.25.To.34.Years','Percent.Sex.And.Age.Total.Population.35.To.44.Years','Percent.Sex.And.Age.Total.Population.45.To.54.Years', 'Percent.Sex.And.Age.Total.Population.55.To.59.Years')]
+```{r age EDA 25-59, echo=FALSE, message=FALSE, fig.width= 6, fig.height=3.5}
+census_df<-final_df[c('cases_per_100k_at_365d', 
+                      'Percent.Sex.And.Age.Total.Population.25.To.34.Years',
+                      'Percent.Sex.And.Age.Total.Population.35.To.44.Years',
+                      'Percent.Sex.And.Age.Total.Population.45.To.54.Years',
+                      'Percent.Sex.And.Age.Total.Population.55.To.59.Years')]
 
-names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  gsub(pattern = ".To.", replacement = "- \n") %>%  gsub(pattern = ".Years", replacement = " Yrs") %>%  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
+names(census_df) <- names(census_df) %>% 
+  gsub(pattern = "Percent.Sex.And.Age.Total.Population.", 
+       replacement = "Pct. ") %>%  
+  gsub(pattern = ".To.", replacement = "- \n") %>%  
+  gsub(pattern = ".Years", replacement = " Yrs") %>%
+  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
 
 panel.cor<-function(x,y)
   {
@@ -129,13 +138,29 @@ panel.cor<-function(x,y)
     text(0.5,0.5,r)
   }
 
-pairs(census_df,lower.panel = panel.cor,upper.panel = panel.smooth, diag.panel = panel.hist, cex.labels=1)
+# census_df %>% names()
+pairs(census_df,lower.panel = panel.cor,
+      upper.panel = panel.smooth, 
+      diag.panel = panel.hist, cex.labels=1, gap = 0.5,
+      labels = c("Cases", "Age 25-34%", "Age 35-44%", 
+                 "Age 45-54%", "Age 55-59%"),
+      main = "Case vs Age (Contin.) Bins Distribution and Scatter Plots")
+
 ```
 
-```{r age EDA 60+, echo=FALSE, message=FALSE}
-census_df<-final_df[c('cases_per_100k_at_365d','Percent.Sex.And.Age.Total.Population.60.To.64.Years','Percent.Sex.And.Age.Total.Population.65.To.74.Years', 'Percent.Sex.And.Age.Total.Population.75.To.84.Years', 'Percent.Sex.And.Age.Total.Population.85.Years.And.Over')]
+```{r age EDA 60+, echo=FALSE, message=FALSE, fig.width= 6, fig.height=3.5}
+census_df<-final_df[c('cases_per_100k_at_365d',
+                      'Percent.Sex.And.Age.Total.Population.60.To.64.Years',
+                      'Percent.Sex.And.Age.Total.Population.65.To.74.Years',
+                      'Percent.Sex.And.Age.Total.Population.75.To.84.Years',
+                      'Percent.Sex.And.Age.Total.Population.85.Years.And.Over')]
 
-names(census_df) <- names(census_df) %>% gsub(pattern = "Percent.Sex.And.Age.Total.Population.", replacement = "Pct. ") %>%  gsub(pattern = ".To.", replacement = "- \n") %>%  gsub(pattern = ".Years", replacement = " Yrs") %>%  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
+names(census_df) <- names(census_df) %>% 
+  gsub(pattern = "Percent.Sex.And.Age.Total.Population.", 
+       replacement = "Pct. ") %>%  
+  gsub(pattern = ".To.", replacement = "- \n") %>%  
+  gsub(pattern = ".Years", replacement = " Yrs") %>%  
+  gsub(pattern = 'cases_per_100k_at_365d', replacement = " Cases per \n 100k")
 
 panel.cor<-function(x,y)
   {
@@ -144,25 +169,66 @@ panel.cor<-function(x,y)
     r=round(cor(x,y),digits=2)
     text(0.5,0.5,r)
   }
-
-pairs(census_df,lower.panel = panel.cor,upper.panel = panel.smooth, diag.panel = panel.hist, cex.labels=1)
+#print new line
+# cat(" \n ")
+pairs(census_df,
+      lower.panel = panel.cor, upper.panel = panel.smooth, 
+      diag.panel = panel.hist, cex.labels=1, gap = 0.5,
+      labels = c("Cases", "Age 60-64%", "Age 65-74%", 
+                 "Age 75-86%", "Age 85+ %"),
+      main = "Case vs Age (Contin.) Bins Distribution and Scatter Plots")
 ```
 
 
 ```{r age demo F-tests for feature creation, echo=FALSE, message=FALSE}
 
-#Build nested models for categorical age demographic data where visual inspection suggested interesting relationships with target
+# Build nested models for categorical age demographic data where 
+# visual inspection suggested interesting relationships with target
 model_a = lm(cases_per_100k_at_365d ~ median_transit_change + Percent.Sex.And.Age.Total.Population.Under.5.Years, data = final_df)
 
-model_b = lm(cases_per_100k_at_365d ~ median_transit_change + Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years, data = final_df)
+model_b = lm(cases_per_100k_at_365d ~ median_transit_change +
+               Percent.Sex.And.Age.Total.Population.Under.5.Years +
+               Percent.Sex.And.Age.Total.Population.5.To.9.Years, 
+             data = final_df)
 
-model_c = lm(cases_per_100k_at_365d ~ median_transit_change + Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years, data = final_df)
+model_c = lm(cases_per_100k_at_365d ~ median_transit_change +
+               Percent.Sex.And.Age.Total.Population.Under.5.Years +
+               Percent.Sex.And.Age.Total.Population.5.To.9.Years +
+               Percent.Sex.And.Age.Total.Population.10.To.14.Years, 
+             data = final_df)
 
-model_d = lm(cases_per_100k_at_365d ~ median_transit_change + Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years, data = final_df)
+model_d = lm(cases_per_100k_at_365d ~ median_transit_change +
+               Percent.Sex.And.Age.Total.Population.Under.5.Years +
+               Percent.Sex.And.Age.Total.Population.5.To.9.Years +
+               Percent.Sex.And.Age.Total.Population.10.To.14.Years +
+               Percent.Sex.And.Age.Total.Population.15.To.19.Years, 
+             data = final_df)
 
-model_e = lm(cases_per_100k_at_365d ~ median_transit_change + Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years, data = final_df)
+model_e = lm(cases_per_100k_at_365d ~ median_transit_change +
+               Percent.Sex.And.Age.Total.Population.Under.5.Years +
+               Percent.Sex.And.Age.Total.Population.5.To.9.Years +
+               Percent.Sex.And.Age.Total.Population.10.To.14.Years +
+               Percent.Sex.And.Age.Total.Population.15.To.19.Years +
+               Percent.Sex.And.Age.Total.Population.20.To.24.Years, 
+             data = final_df)
+```
 
+```{r wrap-hook, echo=FALSE}
+library(knitr)
+hook_output = knit_hooks$get('output')
+knit_hooks$set(output = function(x, options) {
+  # this hook is used only when the linewidth option is not NULL
+  if (!is.null(n <- options$linewidth)) {
+    x = knitr:::split_lines(x)
+    # any lines wider than n should be wrapped
+    if (any(nchar(x) > n)) x = strwrap(x, width = n)
+    x = paste(x, collapse = '\n')
+  }
+  hook_output(x, options)
+})
+```
 
+```{r, linewidth=60}
 #Significant 
 anova(model_a, model_1_final, test = "F")
 
@@ -186,18 +252,30 @@ Our first ANOVA F-test compared our Model 1 with a new model that had an additio
 
 We failed to reject the null hypothesis when adding an estimator for ages 5-9 (model_b), and succeeded in rejecting the null hypothesis when adding an estimator for ages 10-14 (model_c), with a p-value of 0.001. Adding additional estimators for 15-19 and 20-24 failed to reject the null hypothesis that these models (model_d and model_e) were measurably better at reducing residuals than model_c. These results suggested creating two new features for the percentage of the population ages 0-9 and 10-24 and adding them to our base Model 1 to create the first specification for our Model 2.
 
-```{r df update 1, echo=FALSE, message=FALSE} 
-final_df <- final_df %>% mutate(pop_pct_age_0_9 = Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years,
-                    pop_pct_age_10_24 = Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years)
+```{r df update 1, echo=TRUE, message=FALSE} 
+final_df <- final_df %>% 
+  mutate(pop_pct_age_0_9 = Percent.Sex.And.Age.Total.Population.Under.5.Years + 
+           Percent.Sex.And.Age.Total.Population.5.To.9.Years,
+                    pop_pct_age_10_24 = 
+           Percent.Sex.And.Age.Total.Population.10.To.14.Years +
+           Percent.Sex.And.Age.Total.Population.15.To.19.Years +
+           Percent.Sex.And.Age.Total.Population.20.To.24.Years)
 
 cor(final_df$pop_pct_age_0_9, final_df$pop_pct_age_10_24)
 
-final_df <- final_df %>% mutate(pop_pct_age_0_24 = Percent.Sex.And.Age.Total.Population.Under.5.Years + Percent.Sex.And.Age.Total.Population.5.To.9.Years + Percent.Sex.And.Age.Total.Population.10.To.14.Years + Percent.Sex.And.Age.Total.Population.15.To.19.Years + Percent.Sex.And.Age.Total.Population.20.To.24.Years)
+final_df <- final_df %>% 
+  mutate(pop_pct_age_0_24 = Percent.Sex.And.Age.Total.Population.Under.5.Years + 
+           Percent.Sex.And.Age.Total.Population.5.To.9.Years +
+           Percent.Sex.And.Age.Total.Population.10.To.14.Years +
+           Percent.Sex.And.Age.Total.Population.15.To.19.Years +
+           Percent.Sex.And.Age.Total.Population.20.To.24.Years)
 ```
 
 However, after measuring a 0.77 correlation between these two features - and with the goal of increased model parsimony - we decided to group them together to prevent the standard errors for their respective coefficients from increasing substantially. Let's take a look and assess whether this new variable for percentage of the population < 24 years old visually satisfies the conditional linearity expectation with respect to our target.
 
-```{r incremental variables 1, echo=FALSE, message=FALSE}
+```{r incremental variables 1, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
+#print new line
+cat(" \n ")
 ggplot(data = final_df) +
   geom_point(aes(x = pop_pct_age_0_24,
                  y = cases_per_100k_at_365d)) +
@@ -209,11 +287,15 @@ ggplot(data = final_df) +
                   y = cases_per_100k_at_365d),
             colour = 'blue',
             method = 'loess', se = TRUE) +
-  labs(title = 'Percentage of State Population Under Age 25 vs. \nCases Per 100K People at One Year After SOE',
+  labs(title = 
+         'Perc. of State Pop. Under Age 25 vs.
+Cases Per 100K People',
        x='Percentage of State Population Under Age 25',
-       y='Cases Per 100K People One Year After SOE') +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=12))
+       y='Cases Per 100K People\nOne Year After SOE') +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8))
+#print new line
+cat(" \n ")
 ```
 
 The conditional linear expectation between our population percentage aged 0-24 and our target appears to be met. In addition to evaluating the linear relationships between the demographic age variables and our target, we also evaluated the log, square root, and square transformations to the age distribution data but did not find them to aid in reducing the frequency or magnitude of outlier data points. 
@@ -221,7 +303,8 @@ The conditional linear expectation between our population percentage aged 0-24 a
 Indeed, including a feature for the percentage of the population aged < 24 years old appears to have improved our model's performance. An ANOVA F-test returned a p-value of 0.0001, suggesting that we reject the null hypothesis that the (interim) Model 2's residuals were not measurably different from the residuals of Model 1.
 
 ```{r model 2 - part 1, echo=FALSE, message=FALSE}
-model_2a <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24, data = final_df)
+model_2a <- lm(cases_per_100k_at_365d ~ median_transit_change + 
+                 pop_pct_age_0_24, data = final_df)
 # Significant
 anova(model_2a, model_1_final, test = "F")
 ```
@@ -229,7 +312,9 @@ anova(model_2a, model_1_final, test = "F")
 After accounting for changes in mobility and demographic age differences between states, the next variable we wanted to explore as part of our descriptive model for COVID case counts was population density. According to the World Health Organization, "COVID-19 virus is primarily transmitted between people through respiratory droplets and contact routes." (https://www.who.int/news-room/commentaries/detail/modes-of-transmission-of-virus-causing-covid-19-implications-for-ipc-precaution-recommendations). In other words, COVID spreads primarily through physical interactions between infected and uninfected hosts, regardless of whether the actual mechanism of transmission is airborne or surface based contact. Hence, it stands to reason that more densely populated areas would see greater rates of infections, because the frequency of these physical interactions will increase with population density. This was the motivation for our group exploring whether a relationship existed between state population density and our outcome variable of interest.
 
 
-```{r incremental variables 2, echo=FALSE, message=FALSE}
+```{r incremental variables 2, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
+#print new line
+cat(" \n ")
 ggplot(data = final_df) +
   geom_point(aes(x = population_density,
                  y = cases_per_100k_at_365d)) +
@@ -241,11 +326,14 @@ ggplot(data = final_df) +
                   y = cases_per_100k_at_365d),
             colour = 'blue',
             method = 'loess', se = TRUE) +
-  labs(title = 'Population Density vs. \nCases Per 100K People at One Year After SOE',
+  labs(title = 'Pop. Density vs.
+Cases Per 100K People',
        x='Population Density (people/sq. mi)',
        y='Cases Per 100K People One Year After SOE') +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=12))
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=9))
+#print new line
+cat(" \n ")
 ```
 
 To our surprise, however, there was no clear relationship between population density and our outcome variable. A t-Test on the parameter estimate for population density's relationship with our target variable failed to reject the null hypothesis that the coefficient value was not measurably different from zero. 
@@ -258,7 +346,7 @@ summary(model_density)
 In spite of this test, our group decided to move forward and try including the population density feature in Model 2, as we believed it to be a conceptually meaningful variable in describing the population prevalence of COVID in each state one year after each state declared a state of emergency. Therefore, we proceeded with an ANOVA F-Test to test whether the incremental population density feature measurably improved model performance (via reduction of residuals) relative to our current model with features for median transit mobility change and percentage of the population < 24 years old. This ANOVA F-test returned a p-value of 0.002, enough to reject the null hypothesis that the model residuals were not measurably different from one another.
 
 
-```{r model 2 - part 2, echo=FALSE, message=FALSE}
+```{r model 2 - part 2, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
 model_2_final <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density, data = final_df)
 
 cat("\n-------Model results-------\n")
@@ -307,7 +395,9 @@ cat("\n")
 
 Because the population density feature only becomes statistically significant at the p = 0.05 level in our model when we include features for median change in transit mobility and the percentage of the population under age 25, we say that the population density has a conditional relationship with our outcome of interest. Both of these two co-variates (median transit mobility change and percentage of the population under age 25) are negatively correlated with population density and positively correlated with our outcome variable. 
 
-```{r conditional effect population density, echo=FALSE, message=FALSE}
+```{r conditional effect population density, echo=FALSE, message=FALSE, fig.width = 4, fig.height=3, fig.align="center"}
+#print new line
+cat(" \n ")
 ggplot(data = final_df) +
   geom_point(aes(y = population_density,
                  x = median_transit_change)) +
@@ -322,9 +412,11 @@ ggplot(data = final_df) +
   labs(title = 'Population Density vs. \nMedian Transit Mobility Change',
        y='State Population Density (people/sq. mi)',
        x='State-Level One Year Median Transit Mobility Change') +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=12))
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8))
 
+#print new line
+cat(" \n ")
 
 ggplot(data = final_df) +
   geom_point(aes(y = population_density,
@@ -340,8 +432,8 @@ ggplot(data = final_df) +
   labs(title = 'Population Density vs. \nPercent of Population Under Age 25',
        y='State Population Density (people/sq. mi)',
        x='Percentage of the State Population Under Age 25') +
-  theme(axis.text=element_text(size=10),
-        axis.title=element_text(size=12))
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8))
 
 ```
 
@@ -356,6 +448,8 @@ To align with our target variable of COVID-19 Cases per 100K one year after stat
 3. If a policy had both beginning and end dates, the total days were calculated by the difference in days of the two dates.
 
 Once the policy-related features of our interest were transformed into days in force, we conducted EDA on the policy-features and COVID cases per 100k population using scatter plot and correlation matrices. 
+
+
 
 ```{r policy days vs cases per capita, echo=FALSE, message=FALSE}
 
@@ -372,18 +466,18 @@ panel.cor<-function(x,y)
     par(usr=c(0,1,0,1))
     r=round(cor(x,y),digits=2)
     text(0.5,0.5,r)
-  }
+}
 
-pairs(m1,lower.panel = panel.cor,upper.panel = panel.smooth, diag.panel = panel.hist, cex.labels=1)
-m1 %>% names()
+#print new line
+cat(" \n \n")
+# m1 %>% names()
 pairs(m1,
       gap = 0.5,
       lower.panel = panel.cor,
       upper.panel = panel.smooth,
-      labels = c("cases", "transit","0-24", "pop_dens", "mask",
-                 "unemployment", "insurance",
-                 "open\nclose", "travel\nquarantine", "stay at\nhome"),
-      main = "policy days vs cases per capita")
+      labels = c("First Business\nClosure", "First Business\nClosure","SOE date", 
+                 "Cases", "Diff in Days"),
+      main = "Policy Days vs Cases Per Capita Distribution and Scatter Plots")
 
 
 # Plot second half of policy vars
@@ -399,11 +493,22 @@ panel.cor<-function(x,y)
     par(usr=c(0,1,0,1))
     r=round(cor(x,y),digits=2)
     text(0.5,0.5,r)
-  }
+}
 
-pairs(m2,lower.panel = panel.cor,upper.panel = panel.smooth, diag.panel = panel.hist, cex.labels=1)
+#print new line
+cat(" \n ")
+# m2 %>% names()
+pairs(m2,
+      lower.panel = panel.cor, upper.panel = panel.smooth, 
+      diag.panel = panel.hist, cex.labels=1, gap = 0.5,
+      labels = c("cases", "businesss\nclosed days", 
+                 "travel\nquarantine", "stay at\nhome"),
+      main = "Policy Days (Contin.) vs Cases Per Cap. Distrib. and Scatter Plots")
 
 ```
+
+
+
 ```{r policy correlation plot, echo=FALSE, message=FALSE}
 z <- data.frame(final_df$cases_per_100k_at_365d, 
              final_df$mask_mandate_days,
@@ -432,7 +537,7 @@ corrplot(mat1, method = "color",
          tl.col = 'black', is.corr=FALSE, 
          # title = 'Correlation Matrix: State Policies vs. Cases',
          addCoefasPercent = TRUE,  addCoef.col = "white", 
-         tl.cex = 0.5, tl.srt = 30,
+         tl.cex = 1, tl.srt = 15,
          type = "lower", #order = "hclust",
          cl.ratio = 0.6, 
          cl.align = "c")
@@ -454,27 +559,41 @@ We were surprised, however, that mask mandates
 
 ```{r model 2 additional policy variables ANOVA F-Tests}
 #Testing mask mandate days: Failed F-Test
-model_2_final_incremental_test1 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + mask_mandate_days, data = final_df)
+model_2_final_incremental_test1 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + 
+                                        mask_mandate_days, data = final_df)
 anova(model_2_final_incremental_test1, model_2_final, test = "F")
 
 #Testing extended unemployment benefit days: Failed F-Test
-model_2_final_incremental_test2 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + unemployment_benefits_days, data = final_df)
+model_2_final_incremental_test2 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + unemployment_benefits_days, data = final_df)
 anova(model_2_final_incremental_test2, model_2_final, test = "F")
 
 #Testing increased unemployment insurance amount: Failed F-Test
-model_2_final_incremental_test3 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + increased_weekly_unemployment_insurance_amt_thru_jul31, data = final_df)
+model_2_final_incremental_test3 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + increased_weekly_unemployment_insurance_amt_thru_jul31, data = final_df)
 anova(model_2_final_incremental_test3, model_2_final, test = "F")
 
 #Testing mask mandate days: Failed F-Test
-model_2_final_incremental_test4 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + business_closed_days_round1, data = final_df)
+model_2_final_incremental_test4 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + business_closed_days_round1, data = final_df)
 anova(model_2_final_incremental_test4, model_2_final, test = "F")
 
 #Testing quarantine mandate days: Failed F-Test
-model_2_final_incremental_test5 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + travel_quarantine_mandate_days, data = final_df)
+model_2_final_incremental_test5 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + travel_quarantine_mandate_days, data = final_df)
 anova(model_2_final_incremental_test5, model_2_final, test = "F")
 
 #Testing stay at home mandate days: Failed F-Test
-model_2_final_incremental_test6 <- lm(cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + stay_at_home_days, data = final_df)
+model_2_final_incremental_test6 <- lm(cases_per_100k_at_365d ~ 
+                                        median_transit_change + 
+                                        pop_pct_age_0_24 + population_density + 
+                                        stay_at_home_days, data = final_df)
 anova(model_2_final_incremental_test6, model_2_final, test = "F")
 ```
 
@@ -499,14 +618,17 @@ resid<-function(lm.model)
          labs(title = "Plot of residuals vs fitted values", x = "fitted value", y = "residual")
 }
 
-
-
 ```
 
 ```{r model2 adding mask_mandate_days to base model}
 
-#model_base=cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density 
-#Model_3=cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density + mask_mandate_days+unemployment_benefits_days #+increased_weekly_unemployment_insurance_amt_thru_jul31+business_close_open_days+travel_quarantine_mandate_days+stay_at_home_days
+#model_base=cases_per_100k_at_365d ~ median_transit_change + 
+#pop_pct_age_0_24 + population_density 
+#Model_3=cases_per_100k_at_365d ~ median_transit_change + 
+#pop_pct_age_0_24 + population_density + mask_mandate_days+
+#unemployment_benefits_days 
+#+increased_weekly_unemployment_insurance_amt_thru_jul31+
+#business_close_open_days+travel_quarantine_mandate_days+stay_at_home_days
 
 #lm.II=lm(Model_3,data=final_df)
 #summary(lm.II)
