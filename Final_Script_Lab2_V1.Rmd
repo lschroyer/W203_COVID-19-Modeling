@@ -647,7 +647,7 @@ summary(model_p)
 
 Having decided on using the median change in transit mobility, the next step in our EDA was to examine what type (if any) of relationship existed between transit and our outcome of interest, which is COVID cases per 100K people. The scatter plot below shows that there is a positive linear relationship between change in median transit and COVID cases. Consequently, we decided to move forward with change in median transit as the key variable for our Model 1.
 
-```{r Model 1: Transit Mobility beginings, echo=FALSE, message=FALSE}
+```{r Model 1: Transit Mobility beginings, echo=FALSE, message=FALSE, fig.align='center', fig.width=4, fig.height=3}
 #print new line
 cat(" \n \n \n \n")
 
@@ -669,8 +669,8 @@ ggplot(data = final_df) +
             # colour = ‘blue’,
             method = 'loess', se = TRUE) +
   labs(title =
-         'Percentage Change in Median Transit Mobility vs.
-Cases Per 100K People',
+         'Percentage Change in Median Transit
+Mobility vs. Cases Per 100K People',
        x='Percentage Change in Median Transit Mobility',
        y='Cases Per 100K People\nOne Year After SOE') +
   theme(axis.text=element_text(size=8),
@@ -836,7 +836,7 @@ For our first model that explores the association between transit mobility and c
 
 Throughout the report, we continued to run these tests (in additon to some other graphics and statistics). The result summary for these include:
 
-```{r model 1, echo=FALSE, message=FALSE,fig.width=4, fig.height=3}
+```{r model 1, echo=FALSE, message=FALSE,fig.width=4, fig.height=3, fig.align='center'}
 model_1_final <- lm(cases_per_100k_at_365d ~ median_transit_change, data = final_df)
 
 summary(model_1_final)
@@ -1100,17 +1100,20 @@ anova(model_e, model_c, test = "F")
 
 Here we calculate the correlation between our two binned age groups 0-9 and 10-24 years of age.
 
-```{r df update 1, echo=FALSE, message=FALSE} 
+```{r df update 1, echo=TRUE, message=FALSE} 
+#create two new features that bins together ages 0-9 and 10-24
 final_df <- final_df %>% 
   mutate(pop_pct_age_0_9 = Percent.Sex.And.Age.Total.Population.Under.5.Years + 
            Percent.Sex.And.Age.Total.Population.5.To.9.Years,
-                    pop_pct_age_10_24 = 
+        pop_pct_age_10_24 = 
            Percent.Sex.And.Age.Total.Population.10.To.14.Years +
            Percent.Sex.And.Age.Total.Population.15.To.19.Years +
            Percent.Sex.And.Age.Total.Population.20.To.24.Years)
 
+#check the correlation between these two age groups
 cor(final_df$pop_pct_age_0_9, final_df$pop_pct_age_10_24)
 
+### strongly correlated - bin these two groups into a new feature 
 final_df <- final_df %>% 
   mutate(pop_pct_age_0_24 = Percent.Sex.And.Age.Total.Population.Under.5.Years + 
            Percent.Sex.And.Age.Total.Population.5.To.9.Years +
@@ -1224,7 +1227,7 @@ To align with our target variable of COVID-19 Cases per 100K one year after stat
 2. If a policy had beginning but not end dates, the total days were calculated by the date of state emergency declared + 364 days - the date of the beginning of the policy.
 3. If a policy had both beginning and end dates, the total days were calculated by the difference in days of the two dates.
 
-Once the policy-related features of our interest were transformed into days in force, we conducted EDA on the policy-features and COVID cases per 100K population using scatter plots and correlation matrices. 
+Once the policy-related features of our interest were transformed into the days a policy was enforced, we conducted EDA on the policy-features and COVID cases per 100K population using scatter plots and correlation matrices. Here we show the distribution of our policy features and some scatter plots indicitating their colinearity levels.
 
 
 ```{r policy days vs cases per capita, echo=FALSE, message=FALSE, fig.width= 6, fig.height=3.5}
@@ -1278,8 +1281,8 @@ cat(" \n ")
 pairs(m2,
       lower.panel = panel.cor, upper.panel = panel.smooth, 
       diag.panel = panel.hist, cex.labels=1, gap = 0.5,
-      labels = c("cases", "businesss\nclosed days", 
-                 "travel\nquarantine", "stay at\nhome"),
+      labels = c("cases", "businesss closed days", 
+                 "travel quarantine", "stay at home"),
       main = 
         "Policy Days (Contin.) vs Cases Per Cap. Distrib. and Scatter Plots")
 
@@ -1311,7 +1314,9 @@ mat1 <- data.matrix(M)
 # cat("\nCorrelation Matrix: State Policies vs. Cases")
 ```
 
-```{r fig.cap = "Correlation Matrix: State Policies vs. Cases", echo=FALSE, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, out.width="90%"}
+From these scatterplots (above), we see varying degrees of linearity between the policy features and our outcome of interest. Next, we provide a correlation heatmap plot to identify how correlated *all* of the policy features are with each other (the scatter plots above could not fit all the features into one figure).
+
+```{r fig.cap = "Correlation Matrix: State Policies vs. Cases", echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=6, out.width="90%"}
 corrplot(mat1, method = "color", 
          tl.col = 'black', is.corr=FALSE, 
          # title = 'Correlation Matrix: State Policies vs. Cases',
@@ -1323,7 +1328,9 @@ corrplot(mat1, method = "color",
 cat(" \n \n")
 ```
 
-From the scatterplots, we see varying degrees of linearity between the policy features and our outcome of interest. We tested each of these features iteratively in the same manner as before, using significance from ANOVA F-tests as the benchmark to decide whether or not to include incremental policy features as part of our final Model 2. 
+\newpage
+
+We tested each of these features iteratively in the same manner as before, using significance from ANOVA F-tests as the benchmark to decide whether or not to include incremental policy features as part of our final Model 2. 
 
 ## Failed ANOVA F-Tests on Policy Variables
 
@@ -1555,13 +1562,14 @@ Finally, the parameter estimate for the percent of population below age 25 featu
 
 Because the change in median transit mobility was the only feature from Model 2 to become insignificant in the Model 3 specification, we decided to dig a bit deeper - beyond the bivariate correlations between this feature and all others in Model 3 - and calculated the variance inflation factor (VIF) for change in median transit mobility. The VIF is a singular measure of each feature's multicolinearity with all other co-variates in the model specification. The VIF for change in median transit mobility was 2.1, which was higher than any of the other features included in the Model 2 specification, but not high enough to justify dropping it from the model specification (according to our research, the rule of thumb is that this is only necessary for features with VIF values > 5). Ultimately, while we can partially attribute this feature's loss of statistical significance from Model 2 to Model 3 to multi-colinearity with the new policy features, the fact that the VIF was only 2.1 should give us pause when evaluating the statistical significance of the relationship between change in median transit mobility and COVID-19 cases in Model 2.
 
-Still, based on the totality of the Model 3 results, we conclude that adding the policy variables did not measurably reduce the model residuals in comparison with Model 2. Indeed, Model 3 recorded an adjusted R^2 of 0.473, less than the 0.479 recorded for Model 2. In light of this, and the fact that Model 3 also failed to reject the null hypothesis of an ANOVA F-Test against Model 2, we will move forward with Model 2 for the purposes of our CLM assumption assessment.
+Still, based on the totality of the Model 3 results, we conclude that adding the policy variables did not measurably reduce the model residuals in comparison with Model 2. Indeed, Model 3 recorded an adjusted $R^2$ of 0.473, less than the 0.479 recorded for Model 2. In light of this, and the fact that Model 3 also failed to reject the null hypothesis of an ANOVA F-Test against Model 2, we will move forward with Model 2 for the purposes of our CLM assumption assessment.
 
-```{r vif}
+```{r vif, echo=FALSE}
 library(car)
 vif(model_3_final)
 ```
 
+\newpage
 # Regression Table
 
 ```{r regression table, echo=FALSE, message=FALSE}
@@ -1586,36 +1594,11 @@ robust_se_3 <- coeftest(model_3_final,
 #           header = FALSE,
 #           font.size = "small",
 #           single.row = TRUE,
-#           out = "pwd/fit_lm.txt") # to put coefficients and standard errors on same line
+#           out = "pwd/fit_lm.txt") #output text file - save as png, 
+#                                   then reload
 
-
-# jp
-# stargazer(model_1_final, model_2_final, model_3_final,
-#           type = 'text',
-#           title = "Table 1: OLS models for COVID-19 Spread",
-#           # float.env = "sidewaystable",
-#           covariate.labels=c("median_transit_change",
-#                              "pop_pct_age_0_24", 
-#                              "population_density",
-#                              "mask_mandate_days",
-#                              "unemployment_benefits",
-#                              "increased_weekly_unemp",
-#                              "business_closed_days",
-#                              "travel_quarantine_man",
-#                              "stay_at_home_days"),
-#           # rownames = FALSE, 
-#           se = list(robust_se_1, robust_se_2, robust_se_3)
-#           # font.size=6,
-#           # header=FALSE, # to get rid of r package output text
-#           # single.row = TRUE, # to put coefficients and standard errors on same line
-#           # no.space = TRUE, # to remove the spaces after each line of coefficients
-#           # column.sep.width = "1pt", # to reduce column width
-#           # font.size = "small" # to make font size smaller
-# 
-# )
 
 ```
-
 ![stargazer output](pwd/fit_lm.png)
 
 # Assessment of the CLM
@@ -1638,7 +1621,7 @@ In assessing whether our observations have a Linear Conditional Expectation (LCE
 
 **Assumption 3: No Perfect Colinearity**: 
 
-Perfect Colinearity means no independent variable can be expressed as a linear function of any other independent variables. It is clear there is no perfect colinearity since all variables had an estimation. No variables dropped out of the model.
+Perfect Colinearity means no independent variable can be expressed as a linear function of any other independent variables. It is clear there is no perfect colinearity since all feature paramaters had an estimation (i.e. the OLS regression function in R automatically drops `n-1` features in the instance where there are `n` perfectly colinear features).
 
 ```{r model 2 vif, echo=FALSE, message=FALSE, results=FALSE}
 model_base=cases_per_100k_at_365d ~ median_transit_change + pop_pct_age_0_24 + population_density
@@ -1646,13 +1629,13 @@ lm.base=lm(model_base,data=final_df)
 car::vif(lm.base)
 ```
 
-The values of variance inflation factors show that the colinearity between the independent variables in Model 2 is not high (all values are < 2). Hence, we conclude that there is no evidence of perfect or near perfect colinearity in Model 2.
+The values of variance inflation factors show that the colinearity between the independent variables in Model 2 is not high (all values are < 2). Hence, we observed no evidence of perfect or near perfect colinearity in Model 2.
  
 **Assumption 4: Homoskedastic Errors:** 
 
-We assessed the possibility of homoskedastic errors by visually assessing the plot between fitted values and residuals of the model, together with the Breusch-Pagan test (BP test).
+We assessed the possibility of homoskedastic errors by visually assessing the plot between fitted values and residuals of the model, together with the Breusch-Pagan test.
 
-```{r base model, echo=FALSE, message=FALSE}
+```{r base model, echo=FALSE, message=FALSE, fig.align='center', fig.width=4, fig.height=3}
 #-------Model Residual Plot-------
 m<-mean(model_2_final$residuals)
 std<-sqrt(var(model_2_final$residuals))
@@ -1660,20 +1643,20 @@ hist(model_2_final$residuals, freq=F, breaks=12, xlab='Model 2 residuals',
      main="Model 2 Residuals vs. Normal Dist.")
 curve(dnorm(x , mean = m, sd = std ),col="red", lwd=2, add=TRUE, yaxt="n")
 
-qplot(lm.base$fitted, lm.base$residuals,
+qplot(model_2_final$fitted, model_2_final$residuals,
             geom = "point") +
          geom_abline(intercept = 0,
                      slope = 0,
                      colour = "red") + 
-         geom_smooth(aes(x = lm.base$fitted,
-                         y = lm.base$residuals),
+         geom_smooth(aes(x = model_2_final$fitted,
+                         y = model_2_final$residuals),
             colour = 'blue',
             method = "loess", se = TRUE) +
          labs(title = "Plot of residuals vs fitted values for Model 2",
               x = "fitted value",
               y = "residual")
 
-bptest(lm.base)
+bptest(model_2_final)
 ```
  
 The plot shows the variance of error term of Model 2 is likely to be non constant since the residuals widens toward both ends of the plot. The Breusch-Pagan test’s p-value is 0.040, meaning that we reject the null hypothesis that the residuals have constant variance. Although heteroskedasticity is likely to exist, we have remedied the problem by making all of our statistical significance claims for model parameter estimates using robust standard errors instead of classical standard errors.
@@ -1769,6 +1752,61 @@ These tests were not in the scope of the course material and not conducted in th
 
 # Conclusion. 
 
-Does the conclusion address the research question? Does it raise interesting points beyond numerical estimates? Does it place relevant context around the results?
+In this regression analysis lab, we collected different types of data/observations, including mobility, demographics, and policies, that we thought were related to COVID cases in the U.S. from various databases. Once we extracted the raw data/observations from the databases, we performed a data cleaning process to identify and remove errors and missing values, and  a data wrangling process to calculate/transform the raw data/observations into the features that we were interested in. Once the features were obtained, we further conducted a rigorous Exploratory Data Analysis (EDA) to investigate the relationships/correlations among different features and the target. After the EDA, we decided to select the target as the COVID cases per 100k people in each state after 364 days after the state of emergency was declared by the state government, and the descriptive features including transit mobility change, population density, percent of population under the age of 25, mask mandates total days, stay-at-home total dyas, travel quarantine mandate total days, closure of business total days, increased unemployment benefit total days, and the increased amount of unemployment benefit. We continued to sequentially build 3 regression models with different specifications for this regression analysis lab.
 
-Are there any other errors, faulty logic, unclear or unpersuasive writing, or other elements that leave you less convinced by the conclusions?
+## Model Summaries
+Across all three models, our key variable coefficient and robust standard errors perform the best in model 2 and then in model 1, while in model 3 none of the additional policy covariates were statistically insignificant and the robust standard error for our main predictor, median transit, actually increased to a point where this parameter was no longer statistically different than zero. This was expected, however, given we hypothesized that that the median transit parameter captured many of the policy-related features inherently (e.g. quarantine policies we hypothesized would be highly associated with lower mobility). The slight reduction in the standard errors between from model 1 (cases ~ mobility) to model 2 (case ~ mobility, age below 24, and population density) occurred because the additional covariates explain some of the variance of our target variable without being highly collinear with the change in transit mobility feature, thus capturing some of the unique variation with respect to the Model 1 error term. With this in mind, we drew the following associative conclusions from our OLS regressions:
+
+### Model 1:
+$$
+\begin{split}
+\text{the number of COVID cases per 100,000 people in the first year after the declaration of a state of emergency}\\ ≈ 10370 + \space 
+79 * \text{percent change in transit mobility levels}
+\end{split}
+$$
+
+In our first (base) model, we selected the mobility change as the primary feature for our regression analysis. The analysis results showed that the number of COVID cases per 100,000 people in the first year after the declaration of a state of emergency ≈ 10370 + 79 * percent change in transit mobility. The regression coefficient of mobility change suggested that a 1% change in mobility was associated with approximately 80 case counts increase in the first year. The intercept term suggested that an average of 10,370 case increase per 100k people within the year after the state of emergency was declared was expected if there was no mobility change. Our base model had the poorest model fit (adjusted R-squared) value (0.151) and the largest residual standard error (2,260) among the three models. The base model with mobility change explained approximately less than 20% of the total variance of the target. 
+
+
+### Model 2:
+$$
+\begin{split}
+\text{change in cases per 100,000 people...} ≈ -10,160 + \space \\
+82 * \text{percent change in transit mobility levels} + \space  \\
+628 * \text{percent of the population under 25 years of age} \space  + \\
+5 * \text{population density}
+\end{split}
+$$
+
+
+In our second model, we added two more features, population density and percentage of population under age 25, in an attempt to improve the performance/fit of the regression model. We hypothesized that younger people’s higher chance for reduced or no COVID symptoms would result in the spreading the disease at greater rates than older age groups. Hence, for our second model, we were interested in testing our general hypothesis that age demographics, as well as population density, may play a role in the spread of COVID-19.
+
+The regression analysis showed that the cases per 100,000 people ≈ -10,160 + 82 * percent change in transit mobility levels + 628 * percent of the population under 25 years of age + 5 * population density. The regression coefficients suggested that a 1% change in mobility was associated with approximately 80 case counts increase in the first year, a 1% change in the population under age 25 was associated with 628 cases increase per 100,000 people, and a 1% change in the population density was associated with 5 cases increase per 100,000 people when the other two features were kept constant. It would seem that a change in the percentage of the population ages 0-24 is associated with the the greatest change in COVID cases.
+
+Unlike our first model result, our second model results in a negative intercep, the intercept term was negative in this case, which meant the added features successfully explained the variance included in the intercept from the first model. Since there was no state with 0 population density and percent population under 25, it was reasonable that we got a negative intercept in model 2. With that in mind, this intercept isn’t useful as we wouldn’t expect such a negative change in cases per capita to be associated with no change in the independent features. Thus, from this point on, we focused our analysis towards the parameter coefficients. The model fit of the second model improved significantly (adjusted R-squared increased from 0.15 to 0.48) and the residual standard error also reduced pronouncedly (from 2,260 to 1,769). By adding the two non-highly correlated features appeared to significantly improve the efficiency of our descriptive model. The second model was able to explain almost half of the variance in the target, which is a significant improvement over Model 1.  
+
+
+### Model 3: 
+$$
+\begin{split}
+\text{change in cases per 100,000 people...} ≈ -4556 + \space \\
+54 * \text{percent change in transit mobility levels} + \space  \\
+569 * \text{percent of the population under 25 years of age} \space  + \\
+6 * \text{population density} + f(\text{policy features})
+\end{split}
+$$
+
+In the third model, we added a series of additional policy related features with multicollinearity on top of our second model, which included duration of mask mandates, duration and amount of increased government assistance via enhanced unemployment benefits, duration of the first wave of business closures, duration of stay at home mandates, and duration of travel quarantine restrictions. The addition of six policy features, , did not particularly improve the efficiency of our model. In fact, the adjusted R-squared actually decreased from 0.48 to 0.47.
+
+This excercise of adding more and more features was mostly an exercise to help us understand the effect of adding excessive features to a regression model. In this model, the regression coefficients of the  primary features used in model two remained at a similar level (mobility: 82 to 54, population density: 628 to 570, and percent population under age 25: 4.6 to 5.7), which suggested that the robustness of the descriptive power of the features. The policy related feature all came out insignificant with very low regression coefficients (mostly between -2 to 2). The adjusted R square value also reduced from 0.48 to 0.47 and the residual standard error remained almost the same (1,780) compared to our second model. Model 3 also failed to reject the null hypothesis that Model 3's residuals were not measurably reduced from Model 2's in an ANOVA F-Test. In addition, the mobility feature became statistically insignificant in the third model potentially due to collinearity donated by the excessive additional features. The results suggested that adding excessive features with multicollinearity didn’t improve the efficiency of the model by the slightest but could potentially mask the actual descriptive features.   
+
+Given the jump in performance in going from Model 1 to Model 2, and the subsequent decrease in model efficiency and increase in interpretobility in going from Model 2 to Model 3 (along with the fact that we failed to reject the null hypothesis that Model 3's residuals were not measurably reduced from Model 2's in an ANOVA F-Test.), we selected Model 2 as our preferred model for exploring the associations between mobility, demographic, and policy data with a dependent change in COVID cases counts as it balanced improved statistical power with explanatory efficiency and interpretability.
+
+## Study Limitations
+Because we had only 50 sets of observations in this study, the assumptions of the classical linear model were extremely important. Therefore, we checked if our models satisfied the five assumptions of the classical linear model. In this study, we failed to reject that our observations are not IID due to data collection processes or clustering effect of neighboring states. We further investigated if the linear conditional expectation was met in our models. The residual vs. model fit plot confirmed that we had a linear conditional expectation so the assumption was met. Among all the features we selected, we conducted VIF tests to check if near-perfect collinearity existed. The values of VIF were all below 2, so we concluded that there was no evidence of existence of perfect or near perfect collinearity. We continued to assess the possibility of homoskedastic errors by plotting the fitted values and residuals of the models, together with the Breusch-Pagan test(BP test) and obtained p-values of 0.05. Therefore, we rejected the null hypothesis that the errors were homoskedastic. Although heteroskedasticity was likely to exist, we proceeded with the model estimation using robust standard errors. Lastly, we assessed the normality of the residual distribution using Shapiro-Wilk normality test. P-values under 0.05 failed to reject the null hypothesis that the model errors were not normally distributed. When we analyze the findings of our models, we need to keep in mind that some of the unsatisfied assumptions could potentially affect the integrity of our results and proceed our interpretation with care. 
+
+## Discussion
+
+In conclusion, based on our regression analyses, we think that mobility, population density, and percentage of younger people are important descriptive features for understanding COVID cases spread in different states in the U.S.. On the contrary, we didn’t find the policy-related features are statistically significant to describe COVID cases increase. However, it doesn’t mean that the policies designed to reduce virus spread are not important. We believe that the primary features we used in the second model actually reflect certain policies. For example, the mobility change could be related with the travel quarantine mandate and stay-at-home order, and the population density could be related with the mask mandate. In addition, there could be features that are not included in this analysis as mentioned in the omitted feature sections that can impact the interpretation of the model. Therefore, it is not justifiable to denounce the effect of COVID spread mitigation policies due to statistical insignificance. We hope this study can help people understand more about the relationships among COVID cases and related features, provide insights to support COVID mitigation strategies, and serve as a reference for future public health researches.  
+
+
