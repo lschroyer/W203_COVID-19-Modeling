@@ -1,4 +1,4 @@
-#Repository for the second project completed during the UC Berkeley Masters of Information and Data Science (MIDS) W203 course, "Statistics for Data Science"
+# Repository for the second project completed during the UC Berkeley Masters of Information and Data Science (MIDS) W203 course, "Statistics for Data Science"
 
 class website: https://www.ischool.berkeley.edu/courses/datasci/203
 
